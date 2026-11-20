@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les Mots Manquants</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Limelight&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Plan : une scène de cabaret la nuit. Rideau bordeaux sur les côtés, laiton pour tout ce qui s'allume,
+     tuiles ivoire à volets pour les mots à trouver. L'écran télé est dimensionné sur une unité --u (cadre 16:9). */
+  --stage:#170d1c;
+  --stage-2:#22132a;
+  --curtain:#6b1535;
+  --brass:#f3b63f;
+  --ivory:#f7eedc;
+  --ink:#1d1220;
+  --mute:#bcaac0;
+  --line:rgba(247,238,220,.15);
+  --team-a:#41cdb8;
+  --team-b:#ff8160;
+  --good:#63d48b;
+  --bad:#ff5f66;
+  --font-display:"Limelight","Rockwell","Georgia",serif;
+  --font-body:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--stage);color:var(--ivory);font-family:var(--font-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
+.vh:focus-visible + label{outline:3px solid var(--brass);outline-offset:2px}
+.curtains{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 62% 52% at 50% 0%,rgba(243,182,63,.15),transparent 70%),
+    linear-gradient(90deg,rgba(107,21,53,.6),transparent 15%,transparent 85%,rgba(107,21,53,.6));}
+.curtains::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.26) 0 9px,transparent 9px 26px);
+  -webkit-mask-image:linear-gradient(90deg,#000,transparent 13%,transparent 87%,#000);
+  mask-image:linear-gradient(90deg,#000,transparent 13%,transparent 87%,#000)}
+#app{position:relative;z-index:1;height:100%}
+.view{display:none}
+.view.on{display:block}
+#v-tv.on{height:100%}
+
+/* ---------- boutons et champs ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:48px;padding:.55em 1.05em;border-radius:12px;border:1px solid var(--line);background:rgba(247,238,220,.07);color:var(--ivory);font-weight:600;text-align:center;text-decoration:none;line-height:1.2}
+.btn:hover{background:rgba(247,238,220,.13)}
+.btn.primary{background:var(--brass);color:var(--ink);border-color:transparent}
+.btn.primary:hover{background:#ffc75a}
+.btn.good{background:var(--good);color:#0c2415;border-color:transparent}
+.btn.bad{background:var(--bad);color:#2b0709;border-color:transparent}
+.btn.big{min-height:64px;font-size:1.15rem;width:100%}
+.btn.sm{min-height:40px;padding:.35em .8em;font-size:.92rem}
+.btn.brass{border-color:var(--brass);color:var(--brass)}
+.btn.armed{background:var(--bad);color:#2b0709;border-color:transparent}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn[aria-pressed="true"]{background:var(--brass);color:var(--ink);border-color:transparent}
+input[type=text],textarea{width:100%;font:inherit;color:var(--ivory);background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;padding:.6em .75em}
+textarea{resize:vertical;line-height:1.5;min-height:9em}
+input[type=range]{width:100%;accent-color:var(--brass)}
+label{font-weight:600}
+small,.hint{color:var(--mute);font-size:.9rem}
+
+/* ---------- accueil ---------- */
+.home{max-width:1040px;margin:0 auto;padding:clamp(28px,6vw,72px) clamp(16px,4vw,40px) 64px;display:grid;gap:clamp(26px,4vw,46px)}
+.marquee{--p:22px;--d:3px;display:inline-block;padding:20px 0;
+  background:
+    radial-gradient(circle,var(--brass) 0 var(--d),transparent calc(var(--d) * 1.3)) 0 0/var(--p) calc(var(--d) * 2.7) repeat-x,
+    radial-gradient(circle,var(--brass) 0 var(--d),transparent calc(var(--d) * 1.3)) calc(var(--p) / 2) 100%/var(--p) calc(var(--d) * 2.7) repeat-x;
+  animation:chase 1.2s steps(2) infinite}
+@keyframes chase{to{background-position:var(--p) 0,calc(var(--p) * 1.5) 100%}}
+.marquee h1{font-family:var(--font-display);font-weight:400;font-size:clamp(2.5rem,8.2vw,5.6rem);line-height:1.02;letter-spacing:.01em;text-shadow:0 0 30px rgba(243,182,63,.35)}
+.lede{font-size:clamp(1.05rem,2.1vw,1.35rem);max-width:34em;color:var(--ivory);margin-top:18px}
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.role{display:grid;gap:6px;align-content:start;padding:22px;border-radius:18px;background:var(--stage-2);border:1px solid var(--line);text-decoration:none;transition:transform .15s,border-color .15s}
+.role:hover{transform:translateY(-3px);border-color:var(--brass)}
+.role-k{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);font-weight:700}
+.role-t{font-family:var(--font-display);font-size:1.9rem;line-height:1.1}
+.role-d{color:var(--mute)}
+.home-status{color:var(--mute);border-left:3px solid var(--brass);padding-left:12px}
+.how h2{font-family:var(--font-display);font-weight:400;font-size:1.6rem;margin-bottom:14px}
+.how ol{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:12px;max-width:44em}
+.how li{counter-increment:s;display:grid;grid-template-columns:2.4em 1fr;gap:10px;align-items:baseline}
+.how li::before{content:counter(s);font-family:var(--font-display);font-size:1.5rem;color:var(--brass)}
+@media (max-width:760px){.roles{grid-template-columns:1fr}.role[data-go="remote"]{order:-1}}
+
+/* ---------- barre des vues téléphone / chansons ---------- */
+.nav{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(23,13,28,.8)}
+.nav-back{text-decoration:none;color:var(--mute);font-weight:600;padding:8px 4px}
+.nav-t{font-family:var(--font-display);font-size:1.3rem;flex:1}
+.save{font-size:.85rem;color:var(--mute)}
+
+/* ---------- télécommande ---------- */
+.remote-wrap{max-width:540px;margin:0 auto;padding:14px 16px 48px;display:grid;gap:14px}
+.remote{display:grid;gap:14px}
+.status{display:flex;gap:10px;align-items:flex-start;font-size:.92rem;color:var(--mute)}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--bad);margin-top:.4em}
+.dot.on{background:var(--good)}
+.dot.wait{background:var(--brass)}
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rteam{display:grid;gap:8px;padding:10px;border-radius:16px;background:var(--stage-2);border:2px solid transparent}
+.rteam.turn{border-color:var(--brass)}
+.rteam-main{display:grid;gap:2px;background:none;border:0;padding:4px;text-align:left;border-radius:10px;min-height:48px}
+.rname{font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.85rem;overflow-wrap:anywhere}
+.rscore{font-size:2.6rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.rteam.a .rscore{color:var(--team-a)}
+.rteam.b .rscore{color:var(--team-b)}
+.rturn{font-size:.82rem;color:var(--mute)}
+.rteam.turn .rturn{color:var(--brass);font-weight:700}
+.rpm{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.panel{display:grid;gap:12px;padding:16px;border-radius:18px;background:var(--stage-2);border:1px solid var(--line)}
+.panel h2{font-size:1.25rem;line-height:1.2}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rsongs{display:grid;gap:8px}
+.rsong{display:grid;grid-template-columns:3.2em 1fr;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(247,238,220,.05);min-height:56px}
+.rsong.done{opacity:.55}
+.rsong-pts{font-family:var(--font-display);font-size:1.7rem;color:var(--brass);text-align:center}
+.rsong-txt{display:grid;min-width:0}
+.rsong-txt b{overflow-wrap:anywhere}
+.songcard{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.songcard .rsong-pts{font-size:2.2rem}
+.answer{display:grid;gap:4px;background:var(--ivory);color:var(--ink);border-radius:14px;padding:12px 14px}
+.answer-k{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#7a4a12}
+.answer-v{font-size:1.35rem;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.answer-n{font-size:.85rem;color:#5b4a5e}
+.warn{color:var(--brass);font-size:.92rem;border-left:3px solid var(--brass);padding-left:10px}
+.rprog{display:grid;gap:6px}
+.bar{height:8px;border-radius:99px;background:rgba(247,238,220,.14);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--brass);border-radius:99px}
+.sub-k{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700;margin-top:4px}
+details.settings{padding:12px 16px;border-radius:16px;border:1px solid var(--line)}
+details.settings summary{font-weight:600;cursor:pointer;min-height:32px}
+.settings-body{display:grid;gap:12px;margin-top:12px}
+.field{display:grid;gap:6px}
+
+/* ---------- mes chansons ---------- */
+.ed{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:24px;max-width:1180px;margin:0 auto;padding:20px 16px 64px;align-items:start}
+.ed-side{display:grid;gap:10px}
+.ed-list{display:grid;gap:8px;margin-top:6px}
+.ed-item{display:grid;grid-template-columns:2.8em 1fr;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(247,238,220,.04)}
+.ed-item.on{border-color:var(--brass);background:rgba(243,182,63,.1)}
+.ed-pts{font-family:var(--font-display);font-size:1.5rem;color:var(--brass);text-align:center}
+.ed-item-txt{display:grid;min-width:0}
+.ed-item-txt b{overflow-wrap:anywhere}
+.ed-form{display:grid;gap:18px;min-width:0}
+.ed-blank{padding:28px;border:1px dashed var(--line);border-radius:18px;display:grid;gap:10px;max-width:40em}
+.ed-blank h2{font-family:var(--font-display);font-weight:400;font-size:1.7rem}
+.ed-card{display:grid;gap:14px;padding:18px;border-radius:18px;background:var(--stage-2);border:1px solid var(--line)}
+.ed-card h3{font-size:1.05rem;letter-spacing:.02em}
+.ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:.85rem;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.chip.ok{border-color:var(--good);color:var(--good)}
+.chip.no{border-color:var(--brass);color:var(--brass)}
+.transport{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.ed-time{font-variant-numeric:tabular-nums;color:var(--mute);min-width:9.5em;text-align:right}
+.ed-row{display:grid;gap:6px}
+.ed-timeset{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ed-timeset input{width:6.5em;text-align:center;font-variant-numeric:tabular-nums}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.sync{display:grid;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--brass);background:rgba(243,182,63,.08)}
+.sync-k{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);font-weight:700}
+.sync-line{font-size:1.3rem;font-weight:700}
+@media (max-width:820px){.ed{grid-template-columns:1fr}.ed-grid{grid-template-columns:1fr}.transport{grid-template-columns:1fr}.ed-time{text-align:left}}
+
+.auto-status{border-left:3px solid var(--brass);padding-left:10px;font-size:.95rem}
+.stepper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stepper output{min-width:2.2em;text-align:center;font-weight:800;font-size:1.3rem;font-variant-numeric:tabular-nums}
+.auto-lines{position:relative;display:grid;gap:2px;max-height:21em;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px;background:rgba(0,0,0,.24)}
+.al{display:grid;grid-template-columns:3.6em 1fr;gap:8px;align-items:baseline;text-align:left;padding:7px 8px;border-radius:8px;border:0;background:none;color:var(--mute);min-height:38px}
+.al:hover{background:rgba(247,238,220,.08)}
+.al-t{font-variant-numeric:tabular-nums;font-size:.8rem;opacity:.75}
+.al.lead{color:var(--ivory)}
+.al.cut{color:var(--ivory);background:rgba(243,182,63,.13)}
+.al.cut .al-t{color:var(--brass);opacity:1}
+.al mark{background:var(--ivory);color:var(--ink);border-radius:5px;padding:0 .3em;font-weight:700}
+#ed-msg:empty{display:none}
+#ed-msg{color:var(--ivory);border-left:3px solid var(--brass);padding-left:10px}
+
+/* ---------- écran télé ---------- */
+.tv{--u:min(1vh,.5625vw);position:relative;height:100%;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+.tv-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:calc(3*var(--u));padding:calc(2.4*var(--u)) calc(4*var(--u)) 0}
+.team{display:flex;align-items:center;justify-content:space-between;gap:calc(2*var(--u));padding:calc(1.2*var(--u)) calc(2.4*var(--u));border-radius:calc(2*var(--u));background:rgba(247,238,220,.05);border:calc(.35*var(--u)) solid transparent;min-width:0}
+.team.b{flex-direction:row-reverse;text-align:right}
+.team .who{display:grid;min-width:0}
+.team .tag{font-size:calc(1.7*var(--u));letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--brass);visibility:hidden}
+.team.turn .tag{visibility:visible}
+.team .name{font-weight:700;font-size:calc(3*var(--u));letter-spacing:.04em;text-transform:uppercase;line-height:1.1;overflow-wrap:anywhere}
+.team .score{font-size:calc(7.6*var(--u));font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.team.a .score{color:var(--team-a)}
+.team.b .score{color:var(--team-b)}
+.team.turn{border-color:var(--brass);background:rgba(243,182,63,.1);box-shadow:0 0 calc(6*var(--u)) rgba(243,182,63,.2)}
+.score.bump{animation:bump .6s ease-out}
+@keyframes bump{30%{transform:scale(1.35)}}
+.tv-brand{display:grid;justify-items:center;gap:calc(.4*var(--u));text-align:center}
+.brand-name{font-family:var(--font-display);font-size:calc(3*var(--u));color:var(--brass);white-space:nowrap}
+.brand-sub{font-size:calc(2*var(--u));color:var(--mute);min-height:1.4em}
+.tv-stage{display:grid;place-items:center;padding:calc(2*var(--u)) calc(6*var(--u));min-height:0;text-align:center}
+.scene{width:100%;display:grid;justify-items:center;gap:calc(2.6*var(--u))}
+.scene-k{font-size:calc(2.6*var(--u));letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.lobby .marquee{--p:calc(3.4*var(--u));--d:calc(.45*var(--u));padding:calc(3*var(--u)) 0}
+.lobby .marquee h1{font-size:calc(12.5*var(--u))}
+.lobby .tagline{font-size:calc(4*var(--u));font-weight:600}
+.lobby .count{font-size:calc(2.6*var(--u));color:var(--mute)}
+.board{width:100%;display:grid;gap:.7em .6em;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr))}
+.card{display:grid;grid-template-columns:auto 1fr;gap:.7em;align-items:center;padding:.6em .8em;border-radius:.6em;background:rgba(247,238,220,.06);border:.08em solid var(--line);text-align:left;min-width:0}
+.card .pts{font-family:var(--font-display);font-size:2.1em;color:var(--brass);line-height:1}
+.card-txt{display:grid;min-width:0}
+.card .t{font-size:1em;font-weight:700;line-height:1.15;overflow-wrap:anywhere}
+.card .a{font-size:.74em;color:var(--mute);overflow-wrap:anywhere}
+.card.done{opacity:.42}
+.card.done.ok .pts{color:var(--good)}
+.card.done.ko .pts{color:var(--bad)}
+.ready-pts{font-family:var(--font-display);font-size:calc(7*var(--u));color:var(--brass)}
+.ready-title{font-size:calc(9*var(--u));font-weight:800;line-height:1.05;overflow-wrap:anywhere}
+.ready-artist{font-size:calc(4*var(--u));color:var(--mute)}
+.ready-turn{font-size:calc(3.6*var(--u));font-weight:700;margin-top:calc(2*var(--u))}
+.turn-a{color:var(--team-a)}
+.turn-b{color:var(--team-b)}
+.lyr{display:grid;gap:calc(.6*var(--u));justify-items:center;font-size:calc(6.2*var(--u));font-weight:600;line-height:1.22;min-height:calc(31*var(--u));align-content:end;max-width:100%}
+.song.long .lyr{font-size:calc(4.8*var(--u))}
+.lyr-line{display:none;opacity:.4;text-wrap:balance;overflow-wrap:anywhere}
+.lyr-line.in{display:block;animation:linein .35s ease-out}
+.lyr-line.cur{opacity:1}
+.lyr-line.gone{display:none}
+.lyr-wait{font-size:calc(4*var(--u));color:var(--mute)}
+@keyframes linein{from{opacity:0;transform:translateY(calc(1.5*var(--u)))}}
+.gap{display:none;flex-wrap:wrap;justify-content:center;gap:calc(1.6*var(--u));perspective:calc(120*var(--u))}
+.is-cut .gap{display:flex}
+.tile{position:relative;min-width:calc(9*var(--u));height:calc(10.5*var(--u));padding:0 calc(2.2*var(--u));border-radius:calc(1.2*var(--u));background:var(--ivory);color:var(--ink);display:grid;place-items:center;font-size:calc(5.4*var(--u));font-weight:800;box-shadow:0 calc(.8*var(--u)) 0 rgba(0,0,0,.4);white-space:nowrap}
+.tile::after{content:"";position:absolute;left:0;right:0;top:50%;height:calc(.25*var(--u));background:rgba(29,18,32,.25)}
+.tile.hinted{color:#8a6a1a}
+.tile.flip{animation:flap .28s ease-in-out}
+@keyframes flap{50%{transform:rotateX(90deg)}}
+.tile.ok{background:var(--good)}
+.tile.ko{background:var(--bad);color:#fff}
+.gap-note{font-size:calc(2.8*var(--u));color:var(--mute);font-weight:600;min-height:1.4em;visibility:hidden}
+.is-cut .gap-note{visibility:visible}
+.judged .gap-note{font-family:var(--font-display);font-size:calc(6.4*var(--u));animation:stamp .45s cubic-bezier(.2,1.6,.4,1)}
+.judged.ok .gap-note{color:var(--good)}
+.judged.ko .gap-note{color:var(--bad)}
+@keyframes stamp{from{transform:scale(2.2) rotate(-6deg);opacity:0}}
+.tv-warn{font-size:calc(2.4*var(--u));color:var(--brass)}
+.final-k{font-size:calc(3.4*var(--u));letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.final-name{font-family:var(--font-display);font-size:calc(13*var(--u));line-height:1.02;overflow-wrap:anywhere}
+.final-score{font-size:calc(6*var(--u));font-weight:800;font-variant-numeric:tabular-nums}
+.tv-band{display:grid;grid-template-columns:1fr auto;gap:calc(3*var(--u));align-items:center;padding:calc(1.4*var(--u)) calc(4*var(--u)) calc(2.2*var(--u));font-size:calc(2.3*var(--u));color:var(--mute)}
+.tv-band #tv-info{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prog{grid-column:1/-1;height:calc(.6*var(--u));background:rgba(247,238,220,.12);border-radius:99px;overflow:hidden;visibility:hidden}
+.prog.on{visibility:visible}
+.prog i{display:block;height:100%;width:0;background:var(--brass)}
+#tv-confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.dock{position:absolute;right:16px;bottom:16px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:4}
+.tv.show-dock .dock{opacity:1;pointer-events:auto}
+.dock .btn{background:rgba(23,13,28,.92)}
+.dock-msg{position:absolute;left:16px;bottom:16px;max-width:60%;padding:10px 14px;border-radius:12px;background:rgba(23,13,28,.95);border:1px solid var(--brass);z-index:4}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:min(430px,94vw);background:var(--stage);border-left:1px solid var(--line);overflow:auto;padding:14px;transform:translateX(102%);transition:transform .2s;z-index:6;visibility:hidden}
+.drawer.open{transform:none;visibility:visible}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:700}
+.gate{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:rgba(23,13,28,.94);z-index:5;overflow:auto}
+.gate[hidden]{display:none}
+.gate-card{max-width:560px;display:grid;gap:14px;padding:26px;border-radius:20px;background:var(--stage-2);border:1px solid var(--brass)}
+.gate-card h2{font-family:var(--font-display);font-weight:400;font-size:1.9rem}
+.gate-card ol{margin:0;padding-left:1.3em;display:grid;gap:6px;color:var(--mute)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="curtains" aria-hidden="true"></div>
+<main id="app">
+
+<section class="view on" id="v-home">
+  <div class="home">
+    <header>
+      <div class="marquee"><h1>Les Mots Manquants</h1></div>
+      <p class="lede">La musique s’arrête net. À vous de chanter la suite, au mot près. Deux équipes, vos chansons, et la télé pour scène.</p>
+    </header>
+    <nav class="roles" aria-label="Choisir le rôle de cet appareil">
+      <a class="role" href="#ecran" data-go="tv"><span class="role-k">Sur le PC relié à la télé</span><span class="role-t">Écran télé</span><span class="role-d">Diffuse la musique, affiche les paroles, les mots à trouver et les scores.</span></a>
+      <a class="role" href="#telecommande" data-go="remote"><span class="role-k" id="role-remote-k">Sur le téléphone de l’animateur</span><span class="role-t">Télécommande</span><span class="role-d">Lance les chansons, montre la bonne réponse, valide et compte les points.</span></a>
+      <a class="role" href="#chansons" data-go="songs"><span class="role-k">Avant la soirée</span><span class="role-t">Mes chansons</span><span class="role-d">Ajoutez vos fichiers audio et leurs paroles : le jeu prépare la coupure et les mots à trouver.</span></a>
+    </nav>
+    <p class="home-status" id="home-status">Chargement…</p>
+    <section class="how">
+      <h2>Déroulé d’une soirée</h2>
+      <ol>
+        <li><span>Sur le PC, ouvrez « Mes chansons » et ajoutez vos fichiers audio. Avec les paroles (dans le fichier, dans un .lrc du même nom, ou collées), le jeu choisit la coupure et les mots à trouver selon les points.</span></li>
+        <li><span>Toujours sur le PC, dans Chrome, ouvrez « Écran télé » puis castez l’onglet vers la télé. Le son part avec l’image.</span></li>
+        <li><span id="how-remote">Sur le téléphone, ouvrez cette même page et choisissez « Télécommande ».</span></li>
+        <li><span>Choisissez une chanson : la musique se coupe toute seule, l’équipe chante la suite, vous validez d’un geste.</span></li>
+      </ol>
+    </section>
+  </div>
+</section>
+
+<section class="view" id="v-remote">
+  <div class="nav"><a class="nav-back" href="#" data-go="home">← Accueil</a><span class="nav-t">Télécommande</span></div>
+  <div class="remote-wrap">
+    <div class="status" id="r-status"></div>
+    <div class="remote" id="remote"></div>
+  </div>
+</section>
+
+<section class="view" id="v-songs">
+  <div class="nav"><a class="nav-back" href="#" data-go="home">← Accueil</a><span class="nav-t">Mes chansons</span><span class="save" id="ed-save" role="status"></span></div>
+  <div class="ed">
+    <aside class="ed-side">
+      <input class="vh" type="file" id="ed-add" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.lrc,.txt" multiple>
+      <label class="btn primary" for="ed-add">Ajouter des fichiers (audio, paroles .lrc)</label>
+      <button class="btn" id="ed-new" type="button">Chanson sans fichier</button>
+      <p class="hint" id="ed-msg" role="status"></p>
+      <p class="hint" id="ed-how">Le jeu lit les paroles rangées dans le fichier audio, ou dans un fichier .lrc du même nom ajouté en même temps, puis choisit la coupure et les mots à trouver selon les points.</p>
+      <p class="hint">Les fichiers audio restent dans le navigateur de cet appareil : ajoutez-les sur le PC qui diffuse la musique. Les titres, paroles et réglages se partagent entre vos appareils.</p>
+      <div class="ed-list" id="ed-list"></div>
+    </aside>
+    <div class="ed-form" id="ed-form"></div>
+  </div>
+</section>
+
+<section class="view" id="v-tv">
+  <div class="tv" id="tv">
+    <header class="tv-top">
+      <div class="team a" id="tv-team-0"><div class="who"><span class="tag">À vous</span><span class="name"></span></div><span class="score">0</span></div>
+      <div class="tv-brand"><span class="brand-name">Les Mots Manquants</span><span class="brand-sub" id="tv-sub"></span></div>
+      <div class="team b" id="tv-team-1"><div class="who"><span class="tag">À vous</span><span class="name"></span></div><span class="score">0</span></div>
+    </header>
+    <div class="tv-stage" id="tv-stage"></div>
+    <footer class="tv-band"><span id="tv-info"></span><span id="tv-link"></span><div class="prog" id="tv-prog"><i></i></div></footer>
+    <canvas id="tv-confetti" aria-hidden="true"></canvas>
+    <div class="dock-msg" id="dock-msg" hidden></div>
+    <div class="dock">
+      <button class="btn sm" type="button" id="dock-fs">Plein écran</button>
+      <button class="btn sm" type="button" id="dock-test">Tester le son</button>
+      <button class="btn sm" type="button" id="dock-drawer">Piloter ici</button>
+      <a class="btn sm" href="#" data-go="home">Accueil</a>
+    </div>
+    <aside class="drawer" id="tv-drawer" aria-label="Pilotage sur cet écran">
+      <div class="drawer-head"><span>Pilotage sur cet écran</span><button class="btn sm" type="button" id="drawer-close">Fermer</button></div>
+      <div class="remote" id="tv-remote"></div>
+    </aside>
+    <div class="gate" id="tv-gate"></div>
+  </div>
+</section>
+
+</main>
+<script>
+(() => {
+'use strict';
+
+/* ================= outils ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const PROPS = new Set(['value', 'checked', 'disabled', 'hidden']);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (PROPS.has(k)) e[k] = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const DEVICE = Math.random().toString(36).slice(2, 10);
+const newId = () => Math.random().toString(36).slice(2, 10);
+const LS = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } },
+};
+const fmt = (t) => {
+  if (!isFinite(t) || t < 0) t = 0;
+  t = Math.round(t * 10) / 10;
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+};
+const parseTime = (str) => {
+  str = String(str).trim().replace(',', '.');
+  const m = str.match(/^(\d+):(\d+(?:\.\d+)?)$/);
+  if (m) return +m[1] * 60 + +m[2];
+  const n = parseFloat(str);
+  return isFinite(n) && n >= 0 ? n : 0;
+};
+const LRC = /^\s*\[(\d{1,3}):(\d{1,2}(?:[.,]\d{1,3})?)\]\s*(.*)$/;
+function parseLyrics(raw) {
+  const out = [];
+  for (const row of String(raw || '').split(/\r?\n/)) {
+    const m = row.match(LRC);
+    const text = (m ? m[3] : row).trim();
+    if (!text) continue;
+    out.push({ t: m ? +m[1] * 60 + parseFloat(m[2].replace(',', '.')) : null, text });
+  }
+  return out;
+}
+const wordsOf = (s) => String(s || '').trim().split(/\s+/).filter(Boolean);
+const plural = (n, one, many) => n + ' ' + (n > 1 ? many : one);
+
+/* <paroles-lib> */
+/* ================= préparation automatique : paroles complètes, coupure, mots à trouver ================= */
+const WORD_OPTS = { 10: [2], 20: [3], 30: [4, 5], 40: [6, 7], 50: [8, 9] };
+const r1 = (v) => Math.round(v * 10) / 10;
+const cleanWords = (s) => wordsOf(s).map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean);
+const stamp = (t) => {
+  t = Math.max(0, t);
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+};
+function parseFull(raw) {
+  const out = [], one = /^\s*\[(\d{1,3}):(\d{1,2})(?:[.:,](\d{1,3}))?\]/;
+  let offset = 0, order = 0;
+  for (let row of String(raw || '').split(/\r\n?|\n/)) {
+    row = row.replace(/<\d{1,3}:\d{1,2}(?:[.:,]\d{1,3})?>/g, '').trim();
+    if (!row) continue;
+    const off = row.match(/^\[offset:\s*([+-]?\d+)\s*\]$/i);
+    if (off) { offset = +off[1] / 1000; continue; }
+    const stamps = [];
+    let m;
+    while ((m = row.match(one))) { stamps.push(+m[1] * 60 + +m[2] + (m[3] ? +('0.' + m[3]) : 0)); row = row.slice(m[0].length); }
+    const text = row.replace(/\s+/g, ' ').trim().slice(0, 240);
+    if (!text || (!stamps.length && /^\[[^\]]*\]$/.test(text)) || !cleanWords(text).length) continue;
+    if (!stamps.length) out.push({ t: null, text, o: order++ });
+    else for (const t of stamps) out.push({ t: Math.max(0, t - offset), text, o: order++ });
+    if (out.length >= 400) break;
+  }
+  if (out.length && out.every((l) => l.t != null)) out.sort((a, b) => a.t - b.t || a.o - b.o);
+  return out;
+}
+function autoCount(s, L, cut) {
+  if (s.nw > 0) return s.nw;
+  const opts = WORD_OPTS[s.points] || [2];
+  if (opts.length > 1 && L && cut >= 0) {
+    let acc = 0;
+    for (let i = cut; i < L.length && acc < opts[opts.length - 1]; i++) {
+      acc += cleanWords(L[i].text).length;
+      if (opts.includes(acc)) return acc;
+    }
+  }
+  return opts[0];
+}
+function pickCut(s, L, avoid) {
+  const key = (t) => cleanWords(t).join(' ').toLowerCase();
+  const cands = [];
+  for (let i = 1; i < L.length; i++) {
+    const n = autoCount(s, L, i);
+    let acc = 0;
+    for (let j = i; j < L.length && acc < n; j++) acc += cleanWords(L[j].text).length;
+    if (acc < n) continue;
+    const from = Math.max(0, i - s.lead), k = key(L[i].text);
+    /* on préfère : une réponse qui n'est pas déjà affichée juste au-dessus, puis assez de lignes avant la coupure */
+    const score = (L.slice(from, i).some((l) => key(l.text) === k) ? 0 : 2) + (i >= Math.min(4, L.length - 1) ? 1 : 0);
+    cands.push({ i, score, fit: acc === n });
+  }
+  if (!cands.length) return L.length > 1 ? L.length - 1 : 0;
+  let pool = cands.filter((c) => c.i !== avoid);
+  if (!pool.length) pool = cands;
+  const best = Math.max(...pool.map((c) => c.score)), top = [];
+  /* à score égal, une réponse qui finit en fin de ligne a deux fois plus de chances */
+  for (const c of pool) if (c.score === best) { top.push(c.i); if (c.fit) top.push(c.i); }
+  return top[Math.floor(Math.random() * top.length)];
+}
+function applyAuto(s, scope) {
+  const L = parseFull(s.full);
+  if (!L.length || s.cut < 0) return null;
+  s.cut = clamp(s.cut, 0, L.length - 1);
+  const cut = s.cut, n = autoCount(s, L, cut), pool = [];
+  for (let i = cut; i < L.length && pool.length < n; i++) pool.push(...cleanWords(L[i].text));
+  s.answer = pool.slice(0, n).join(' ').slice(0, 300);
+  if (scope === 'answer') return L;
+  const lead = L.slice(Math.max(0, cut - s.lead), cut), old = new Map();
+  if (scope !== 'cut') for (const l of parseLyrics(s.lyrics)) if (l.t != null && !old.has(l.text)) old.set(l.text, l.t);
+  s.lyrics = lead.map((l) => {
+    const t = l.t != null ? l.t : old.has(l.text) ? old.get(l.text) : null;
+    return (t != null ? '[' + fmt(t) + '] ' : '') + l.text;
+  }).join('\n').slice(0, 6000);
+  if (L[cut].t != null) {
+    s.stop = r1(Math.max(0, L[cut].t - 0.25));
+    s.start = r1(Math.max(0, (lead.length && lead[0].t != null ? lead[0].t : L[cut].t - 12) - 3));
+  } else if (scope === 'cut') s.stop = 0;
+  return L;
+}
+function pickLyrics(...cands) {
+  let best = '', bs = -1;
+  for (const t of cands) {
+    if (!t || !String(t).trim()) continue;
+    const L = parseFull(t);
+    if (!L.length) continue;
+    const sc = (L.filter((l) => l.t != null).length >= 2 ? 1e6 : 0) + L.length;
+    if (sc > bs) { bs = sc; best = String(t); }
+  }
+  return best;
+}
+function setFull(s, text) {
+  s.full = String(text || '').replace(/\r\n?/g, '\n').trim().slice(0, 20000);
+  const L = parseFull(s.full);
+  if (!L.length) { s.cut = -1; return false; }
+  s.cut = pickCut(s, L, -1);
+  applyAuto(s, 'cut');
+  return true;
+}
+
+/* ----- paroles rangées dans les fichiers audio (étiquettes ID3, MP4, FLAC) et fichiers .lrc ----- */
+const u32 = (b, o) => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0;
+const u32le = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+const ss28 = (b, o) => ((b[o] & 0x7f) << 21) | ((b[o + 1] & 0x7f) << 14) | ((b[o + 2] & 0x7f) << 7) | (b[o + 3] & 0x7f);
+const latin = (b, o, n) => { let s = ''; for (let i = 0; i < n && o + i < b.length; i++) s += String.fromCharCode(b[o + i]); return s; };
+function smartText(b) {
+  try {
+    if (b.length >= 3 && b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) return new TextDecoder('utf-8').decode(b.subarray(3));
+    if (b.length >= 2 && b[0] === 0xff && b[1] === 0xfe) return new TextDecoder('utf-16le').decode(b.subarray(2));
+    if (b.length >= 2 && b[0] === 0xfe && b[1] === 0xff) return new TextDecoder('utf-16be').decode(b.subarray(2));
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { return new TextDecoder('windows-1252').decode(b); }
+  } catch (e) { return ''; }
+}
+function decodeBytes(b, enc) {
+  try {
+    if (enc === 1 || enc === 2) {
+      let be = enc === 2, o = 0;
+      if (b.length >= 2 && b[0] === 0xff && b[1] === 0xfe) { be = false; o = 2; }
+      else if (b.length >= 2 && b[0] === 0xfe && b[1] === 0xff) { be = true; o = 2; }
+      return new TextDecoder(be ? 'utf-16be' : 'utf-16le').decode(b.subarray(o));
+    }
+    return smartText(b);
+  } catch (e) { return ''; }
+}
+const termLen = (enc) => (enc === 1 || enc === 2 ? 2 : 1);
+function termAt(b, o, enc) {
+  if (enc === 1 || enc === 2) { for (let i = o; i + 1 < b.length; i += 2) if (b[i] === 0 && b[i + 1] === 0) return i; return b.length; }
+  for (let i = o; i < b.length; i++) if (b[i] === 0) return i;
+  return b.length;
+}
+function deunsync(b) {
+  const out = new Uint8Array(b.length);
+  let n = 0;
+  for (let i = 0; i < b.length; i++) { out[n++] = b[i]; if (b[i] === 0xff && b[i + 1] === 0) i++; }
+  return out.subarray(0, n);
+}
+function parseSylt(body) {
+  if (body.length < 7) return '';
+  const enc = body[0], ms = body[4] === 2, tl = termLen(enc), ents = [];
+  let p = termAt(body, 6, enc) + tl;
+  while (p < body.length) {
+    const e = termAt(body, p, enc);
+    if (e + tl + 4 > body.length) break;
+    ents.push({ text: decodeBytes(body.subarray(p, e), enc), t: u32(body, e + tl) });
+    p = e + tl + 4;
+  }
+  const hasNl = ents.some((x) => /\n/.test(x.text)), lines = [];
+  let cur = null;
+  for (const x of ents) {
+    const parts = hasNl ? x.text.split(/\r?\n/) : [x.text];
+    parts.forEach((part, i) => {
+      if (!hasNl || i > 0) cur = null;
+      if (!part) return;
+      if (!cur) { cur = { t: x.t, text: '' }; lines.push(cur); }
+      cur.text += part;
+    });
+  }
+  return lines.filter((l) => l.text.trim()).map((l) => (ms ? '[' + stamp(l.t / 1000) + '] ' : '') + l.text.trim()).join('\n');
+}
+function parseID3(b) {
+  const out = { title: '', artist: '', lyrics: '' };
+  const ver = b[3], flags = b[5];
+  if (ver < 2 || ver > 4) return out;
+  let d = b.subarray(10, Math.min(b.length, 10 + ss28(b, 6)));
+  if (ver < 4 && (flags & 0x80)) d = deunsync(d);
+  let p = 0;
+  if (ver === 3 && (flags & 0x40)) p = u32(d, 0) + 4;
+  else if (ver === 4 && (flags & 0x40)) p = ss28(d, 0);
+  const idn = ver === 2 ? 3 : 4, hl = ver === 2 ? 6 : 10;
+  const okId = (o) => /^[A-Z0-9]+$/.test(latin(d, o, idn));
+  const first = (bytes, enc) => decodeBytes(bytes, enc).split('\0')[0].trim();
+  let plain = '', synced = '';
+  while (p + hl <= d.length) {
+    const id = latin(d, p, idn);
+    if (!/^[A-Z0-9]+$/.test(id)) break;
+    let size;
+    if (ver === 2) size = (d[p + 3] << 16) | (d[p + 4] << 8) | d[p + 5];
+    else if (ver === 3) size = u32(d, p + 4);
+    else {
+      size = ss28(d, p + 4);
+      const raw = u32(d, p + 4);
+      const good = (n) => p + hl + n === d.length || (p + hl + n + idn <= d.length && (okId(p + hl + n) || d[p + hl + n] === 0));
+      if (raw !== size && !good(size) && good(raw)) size = raw;
+    }
+    const f2 = ver === 2 ? 0 : d[p + 9], from = p + hl;
+    p = from + size;
+    if (p > d.length) break;
+    if (!size) continue;
+    let body = d.subarray(from, p);
+    if (ver === 4) {
+      if (f2 & 0x0c) continue;
+      if (f2 & 0x01) body = body.subarray(4);
+      if ((f2 & 0x02) || (flags & 0x80)) body = deunsync(body);
+    } else if (ver === 3 && (f2 & 0xc0)) continue;
+    if (body.length < 2) continue;
+    const enc = body[0];
+    if (id === 'TIT2' || id === 'TT2') out.title = out.title || first(body.subarray(1), enc);
+    else if (id === 'TPE1' || id === 'TP1') out.artist = out.artist || first(body.subarray(1), enc);
+    else if (id === 'USLT' || id === 'ULT') {
+      const e = termAt(body, 4, enc), t = decodeBytes(body.subarray(Math.min(body.length, e + termLen(enc))), enc);
+      if (t.trim().length > plain.trim().length) plain = t;
+    } else if (id === 'SYLT' || id === 'SLT') {
+      const t = parseSylt(body);
+      if (t.length > synced.length) synced = t;
+    } else if (id === 'TXXX' || id === 'TXX') {
+      const e = termAt(body, 1, enc);
+      if (/lyric/i.test(decodeBytes(body.subarray(1, e), enc))) {
+        const t = decodeBytes(body.subarray(Math.min(body.length, e + termLen(enc))), enc);
+        if (t.trim().length > plain.trim().length) plain = t;
+      }
+    }
+  }
+  out.lyrics = pickLyrics(synced, plain);
+  return out;
+}
+async function readMp4(file) {
+  const out = { title: '', artist: '', lyrics: '' };
+  const kids = (b, s, e) => {
+    const r = [];
+    let p = s;
+    while (p + 8 <= e) {
+      let n = u32(b, p), hd = 8;
+      if (n === 1 && p + 16 <= e) { n = u32(b, p + 12); hd = 16; } else if (n === 0) n = e - p;
+      if (n < hd || p + n > e) break;
+      r.push({ t: latin(b, p + 4, 4), s: p + hd, e: p + n });
+      p += n;
+    }
+    return r;
+  };
+  const find = (b, s, e, t) => kids(b, s, e).find((k) => k.t === t);
+  let o = 0, guard = 0;
+  while (o + 8 <= file.size && guard++ < 400) {
+    const hb = new Uint8Array(await file.slice(o, o + 16).arrayBuffer());
+    if (hb.length < 8) break;
+    let size = u32(hb, 0), hd = 8;
+    if (size === 1 && hb.length >= 16) { size = u32(hb, 8) * 4294967296 + u32(hb, 12); hd = 16; } else if (size === 0) size = file.size - o;
+    if (size < hd) break;
+    if (latin(hb, 4, 4) === 'moov') {
+      if (size > 64 * 1048576) break;
+      const m = new Uint8Array(await file.slice(o + hd, o + size).arrayBuffer());
+      const udta = find(m, 0, m.length, 'udta');
+      const meta = udta && find(m, udta.s, udta.e, 'meta');
+      const ilst = meta && (find(m, meta.s + 4, meta.e, 'ilst') || find(m, meta.s, meta.e, 'ilst'));
+      if (!ilst) break;
+      for (const it of kids(m, ilst.s, ilst.e)) {
+        const data = find(m, it.s, it.e, 'data');
+        if (!data || data.e - data.s < 8) continue;
+        const val = smartText(m.subarray(data.s + 8, data.e));
+        if (it.t === '\xa9nam') out.title = val.trim();
+        else if (it.t === '\xa9ART') out.artist = val.trim();
+        else if (it.t === '\xa9lyr') out.lyrics = pickLyrics(val);
+      }
+      break;
+    }
+    o += size;
+  }
+  return out;
+}
+async function readFlac(file) {
+  const out = { title: '', artist: '', lyrics: '' };
+  let o = 4, guard = 0, plain = '', synced = '';
+  while (o + 4 <= file.size && guard++ < 64) {
+    const hb = new Uint8Array(await file.slice(o, o + 4).arrayBuffer());
+    if (hb.length < 4) break;
+    const type = hb[0] & 0x7f, len = (hb[1] << 16) | (hb[2] << 8) | hb[3];
+    if (type === 4) {
+      const b = new Uint8Array(await file.slice(o + 4, o + 4 + len).arrayBuffer());
+      if (b.length < 8) break;
+      let p = 4 + u32le(b, 0);
+      if (p + 4 > b.length) break;
+      const n = u32le(b, p);
+      p += 4;
+      for (let i = 0; i < n && p + 4 <= b.length; i++) {
+        const l = u32le(b, p);
+        p += 4;
+        if (p + l > b.length) break;
+        const s = new TextDecoder('utf-8').decode(b.subarray(p, p + l)), eq = s.indexOf('=');
+        p += l;
+        if (eq < 0) continue;
+        const k = s.slice(0, eq).toUpperCase(), v = s.slice(eq + 1);
+        if (k === 'TITLE') out.title = out.title || v.trim();
+        else if (k === 'ARTIST') out.artist = out.artist || v.trim();
+        else if (k === 'SYNCEDLYRICS') synced = v;
+        else if (/LYRICS/.test(k) && v.length > plain.length) plain = v;
+      }
+      break;
+    }
+    if (hb[0] & 0x80) break;
+    o += 4 + len;
+  }
+  out.lyrics = pickLyrics(synced, plain);
+  return out;
+}
+async function readTags(file) {
+  try {
+    const hb = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    if (hb.length < 12) return {};
+    if (latin(hb, 0, 3) === 'ID3') return parseID3(new Uint8Array(await file.slice(0, Math.min(file.size, 10 + ss28(hb, 6), 48 * 1048576)).arrayBuffer()));
+    if (latin(hb, 0, 4) === 'fLaC') return await readFlac(file);
+    if (latin(hb, 4, 4) === 'ftyp') return await readMp4(file);
+  } catch (e) { /* étiquettes illisibles : on s'en passe */ }
+  return {};
+}
+const stemOf = (name) => String(name || '').replace(/\.[^.]+$/, '').trim().toLowerCase();
+const isLyricFile = (f) => /\.(lrc|txt)$/i.test(f.name);
+const isAudioFile = (f) => /^audio\//.test(f.type) || /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus)$/i.test(f.name);
+async function readLyricFile(f) {
+  try { return smartText(new Uint8Array(await f.arrayBuffer())); } catch (e) { return ''; }
+}
+/* ----- recherche des paroles en ligne (LRCLIB, base communautaire), possible hors de Claude uniquement ----- */
+const onlineAllowed = () => typeof fetch === 'function' && !(typeof window !== 'undefined' && window.claude && typeof window.claude.use === 'function');
+const normKey = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const cleanTitle = (t) => {
+  const c = String(t || '').replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').replace(/\s+-\s+(remaster|version|radio edit|single|live|edit|mono|stereo)\S*.*$/i, ' ').replace(/\s+/g, ' ').trim();
+  return c || String(t || '').trim();
+};
+function rankLyrics(list, title, artist, duration) {
+  const tk = normKey(cleanTitle(title)), ak = normKey(artist);
+  let best = null;
+  (Array.isArray(list) ? list : []).forEach((c, idx) => {
+    if (!c || typeof c !== 'object' || c.instrumental) return;
+    const synced = typeof c.syncedLyrics === 'string' && parseFull(c.syncedLyrics).filter((l) => l.t != null).length >= 2 ? c.syncedLyrics : '';
+    const plain = typeof c.plainLyrics === 'string' && parseFull(c.plainLyrics).length ? c.plainLyrics : '';
+    if (!synced && !plain) return;
+    const ck = normKey(cleanTitle(c.trackName)), cak = normKey(c.artistName);
+    let sc = 0;
+    if (tk) {
+      if (ck === tk) sc += 40;
+      else if (ck.length >= 3 && (ck.includes(tk) || tk.includes(ck))) sc += 20;
+      else return;
+    }
+    if (ak && cak) sc += cak === ak ? 20 : cak.includes(ak) || ak.includes(cak) ? 10 : -15;
+    const dd = duration > 0 && typeof c.duration === 'number' && c.duration > 0 ? Math.abs(c.duration - duration) : null;
+    /* confiance dans la synchronisation : 3 = même enregistrement, 2 = durée proche, 1 = durée inconnue, 0 = autre version */
+    const tier = dd == null ? 1 : dd <= 3 ? 3 : dd <= 8 ? 2 : 0;
+    if (dd != null) sc += dd <= 3 ? 30 - dd * 3 : dd <= 8 ? 10 : dd <= 20 ? 0 : -10;
+    const timed = !!synced && tier > 0;
+    sc += timed ? 25 : 5;
+    sc -= idx * 0.1;
+    if (!best || sc > best.sc) best = { sc, c, timed, tier, dd, text: timed ? synced : plain || parseFull(synced).map((l) => l.text).join('\n') };
+  });
+  return best;
+}
+async function lrclibSearch(params) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const r = await fetch('https://lrclib.net/api/search?' + new URLSearchParams(params), { signal: ctl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } finally { clearTimeout(timer); }
+}
+async function findLyricsOnline(title, artist, duration) {
+  const t = cleanTitle(title);
+  if (!t) return null;
+  let best = null;
+  if (artist) best = rankLyrics(await lrclibSearch({ track_name: t, artist_name: artist }), title, artist, duration);
+  if (!best || !best.timed || best.tier < 3) {
+    const alt = rankLyrics(await lrclibSearch({ q: (artist ? artist + ' ' : '') + t }), title, artist, duration);
+    if (alt && (!best || alt.sc > best.sc)) best = alt;
+  }
+  return best;
+}
+function audioDuration(blob) {
+  return new Promise((res) => {
+    let url = null, done = false;
+    const a = new Audio();
+    const fin = (v) => {
+      if (done) return;
+      done = true;
+      try { a.removeAttribute('src'); a.load(); } catch (e) { /* rien */ }
+      if (url) { try { URL.revokeObjectURL(url); } catch (e) { /* rien */ } }
+      res(v);
+    };
+    try {
+      url = URL.createObjectURL(blob);
+      a.preload = 'metadata';
+      a.addEventListener('loadedmetadata', () => fin(isFinite(a.duration) ? a.duration : 0));
+      a.addEventListener('error', () => fin(0));
+      setTimeout(() => fin(0), 6000);
+      a.src = url;
+    } catch (e) { fin(0); }
+  });
+}
+function downloadText(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) { /* rien */ } }, 3000);
+}
+/* </paroles-lib> */
+
+/* ================= état du jeu ================= */
+const PHASES = ['lobby', 'board', 'ready', 'playing', 'cut', 'judged', 'final'];
+const defaultState = () => ({
+  rev: 0, at: 0, by: '',
+  phase: 'lobby',
+  teams: [{ name: 'Équipe A', score: 0 }, { name: 'Équipe B', score: 0 }],
+  turn: 0, songId: null, played: {}, hint: false, verdict: null, gained: 0,
+  audio: { mode: 'idle', seq: 0 },
+});
+function normState(d) {
+  if (!d || typeof d !== 'object') return null;
+  const b = defaultState(), s = defaultState();
+  s.rev = Number.isFinite(d.rev) ? d.rev : 0;
+  s.at = Number.isFinite(d.at) ? d.at : 0;
+  s.by = typeof d.by === 'string' ? d.by.slice(0, 16) : '';
+  s.phase = PHASES.includes(d.phase) ? d.phase : 'lobby';
+  s.teams = [0, 1].map((i) => {
+    const t = (Array.isArray(d.teams) && d.teams[i]) || {};
+    const name = typeof t.name === 'string' && t.name.trim() ? t.name.trim() : b.teams[i].name;
+    return { name: name.slice(0, 24), score: Number.isFinite(t.score) ? Math.round(t.score) : 0 };
+  });
+  s.turn = d.turn === 1 ? 1 : 0;
+  s.songId = typeof d.songId === 'string' ? d.songId.slice(0, 40) : null;
+  if (d.played && typeof d.played === 'object') {
+    for (const [k, v] of Object.entries(d.played).slice(0, 300)) {
+      if (Array.isArray(v)) s.played[k.slice(0, 40)] = [v[0] === 1 ? 1 : 0, v[1] ? 1 : 0, Number.isFinite(v[2]) ? v[2] : 0];
+    }
+  }
+  s.hint = !!d.hint;
+  s.verdict = d.verdict === 'ok' || d.verdict === 'ko' ? d.verdict : null;
+  s.gained = Number.isFinite(d.gained) ? d.gained : 0;
+  const a = d.audio || {};
+  s.audio = { mode: ['idle', 'play', 'pause', 'outro'].includes(a.mode) ? a.mode : 'idle', seq: Number.isFinite(a.seq) ? a.seq : 0 };
+  if (['ready', 'playing', 'cut', 'judged'].includes(s.phase) && !s.songId) s.phase = 'board';
+  return s;
+}
+const newer = (a, b) => (a.rev !== b.rev ? a.rev > b.rev : a.at !== b.at ? a.at > b.at : a.by > b.by);
+
+let G = defaultState();
+let acted = false;
+let view = 'home';
+const caps = { db: null, room: null };
+const net = { resolved: false, connected: false, peers: [], writeErr: null, dbFirst: true, dbSettled: false, tvSig: '', local: false };
+
+/* ================= chansons ================= */
+const songs = new Map();
+let songsVer = 0;
+const DEMO = {
+  id: 'demo', demo: true, title: 'Chanson de démonstration', artist: 'Mélodie synthétique, sans voix',
+  points: 10, start: 0, stop: 16.8, file: '', order: 0,
+  lyrics: '[0:00.0] Ce soir on chante dans le salon\n[0:04.8] La télé brille comme une scène\n[0:09.6] Le téléphone mène la danse\n[0:14.4] Et quand la musique s’arrête',
+  answer: 'il faut trouver les mots',
+};
+function normSong(id, d) {
+  d = d || {};
+  const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+  const num = (v) => (typeof v === 'number' && isFinite(v) && v >= 0 ? v : 0);
+  return {
+    id, title: str(d.title, 120), artist: str(d.artist, 120),
+    points: [10, 20, 30, 40, 50].includes(d.points) ? d.points : 10,
+    start: num(d.start), stop: num(d.stop), lyrics: str(d.lyrics, 6000), answer: str(d.answer, 300),
+    file: str(d.file, 200), order: num(d.order),
+    full: str(d.full, 20000), cut: Number.isInteger(d.cut) && d.cut >= 0 ? d.cut : -1,
+    nw: Number.isInteger(d.nw) && d.nw > 0 && d.nw <= 30 ? d.nw : 0,
+    lead: Number.isInteger(d.lead) && d.lead >= 1 && d.lead <= 40 ? d.lead : 8,
+  };
+}
+const songDoc = (s) => ({ title: s.title, artist: s.artist, points: s.points, start: s.start, stop: s.stop, lyrics: s.lyrics, answer: s.answer, file: s.file, order: s.order, full: s.full, cut: s.cut, nw: s.nw, lead: s.lead });
+const getSong = (id) => (id === 'demo' ? DEMO : songs.get(id) || null);
+const songList = () => {
+  const l = [...songs.values()].sort((a, b) => a.points - b.points || a.order - b.order);
+  return l.length ? l : [DEMO];
+};
+const stopOf = (s) => (s.stop > s.start ? s.stop : Infinity);
+const isReady = (s) => wordsOf(s.answer).length > 0 && s.stop > s.start;
+const pointsFor = (s, hint) => (s ? (hint ? Math.max(5, Math.round(s.points / 2)) : s.points) : 0);
+(function bootSongs() {
+  const arr = LS.get('mm-songs');
+  if (Array.isArray(arr)) for (const d of arr.slice(0, 300)) if (d && typeof d.id === 'string' && d.id !== 'demo') songs.set(d.id, normSong(d.id, d));
+})();
+const cacheSongs = () => LS.set('mm-songs', [...songs.values()]);
+
+/* ================= fichiers audio (restent sur l'appareil) ================= */
+function wavBlob(pcm, sr, gain) {
+  gain = gain || 1;
+  const n = pcm.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, clamp(pcm[i] * gain, -1, 1) * 32000, true);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+function demoWav() {
+  const sr = 22050, dur = 28.8, n = Math.floor(sr * dur), pcm = new Float32Array(n), beat = 0.6;
+  const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const note = (t0, midi, len, amp, rich) => {
+    const a = Math.floor(t0 * sr), b = Math.min(n, Math.floor((t0 + len) * sr)), w = 2 * Math.PI * freq(midi) / sr;
+    for (let i = a; i < b; i++) {
+      const x = i - a, env = Math.min(1, x / (0.006 * sr)) * Math.exp(-3.2 * x / (len * sr));
+      pcm[i] += amp * env * (Math.sin(w * x) + (rich ? 0.45 * Math.sin(2 * w * x) + 0.18 * Math.sin(3 * w * x) : 0.3 * Math.sin(2 * w * x)));
+    }
+  };
+  const chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
+  const shape = [0, 1, 2, 1, 2, 3, 2, 1];
+  for (let bar = 0; bar * beat * 4 < dur; bar++) {
+    const c = chords[bar % 4], t = bar * beat * 4, tones = [c[0] + 12, c[1] + 12, c[2] + 12, c[0] + 24];
+    note(t, c[0] - 24, beat * 2, 0.3, false);
+    note(t + beat * 2, c[0] - 17, beat * 2, 0.24, false);
+    c.forEach((m) => note(t, m, beat * 4, 0.07, false));
+    shape.forEach((k, i) => note(t + i * beat / 2, tones[(k + (bar % 2 ? 1 : 0)) % 4], beat * 0.9, 0.2, true));
+  }
+  return wavBlob(pcm, sr, 0.8);
+}
+const AudioStore = (() => {
+  let opening = null;
+  const mem = new Map(), ids = new Set(), urls = new Map();
+  function open() {
+    if (!opening) opening = new Promise((res) => {
+      try {
+        const r = indexedDB.open('mots-manquants', 1);
+        r.onupgradeneeded = () => { r.result.createObjectStore('audio'); };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(null);
+        r.onblocked = () => res(null);
+      } catch (e) { res(null); }
+    });
+    return opening;
+  }
+  function tx(mode, fn) {
+    return open().then((d) => (d ? new Promise((res) => {
+      try {
+        const t = d.transaction('audio', mode), rq = fn(t.objectStore('audio'));
+        t.oncomplete = () => res(rq ? rq.result : undefined);
+        t.onerror = t.onabort = () => res(undefined);
+      } catch (e) { res(undefined); }
+    }) : undefined));
+  }
+  const dropUrl = (id) => { const u = urls.get(id); if (u) { try { URL.revokeObjectURL(u); } catch (e) { /* rien */ } urls.delete(id); } };
+  return {
+    ids,
+    async refresh() { const keys = await tx('readonly', (s) => s.getAllKeys()); if (keys) keys.forEach((k) => ids.add(String(k))); },
+    async put(id, blob) { mem.set(id, blob); ids.add(id); dropUrl(id); await tx('readwrite', (s) => s.put(blob, id)); },
+    async get(id) {
+      if (id === 'demo' && !mem.has('demo')) mem.set('demo', demoWav());
+      if (mem.has(id)) return mem.get(id);
+      const b = await tx('readonly', (s) => s.get(id));
+      if (b) { mem.set(id, b); ids.add(id); }
+      return b || null;
+    },
+    async del(id) { mem.delete(id); ids.delete(id); dropUrl(id); await tx('readwrite', (s) => s.delete(id)); },
+    async url(id) {
+      if (urls.has(id)) return urls.get(id);
+      const b = await this.get(id);
+      if (!b) return null;
+      const u = URL.createObjectURL(b);
+      urls.set(id, u);
+      return u;
+    },
+    has: (id) => id === 'demo' || ids.has(id),
+  };
+})();
+
+/* ================= bruitages ================= */
+const sfx = (() => {
+  let ctx = null;
+  function init() {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
+  }
+  function tone(f, t0, dur, type, gain) {
+    if (!ctx) return;
+    try {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + t0;
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) { /* rien */ }
+  }
+  return {
+    init,
+    ok() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.11, 0.5, 'triangle', 0.25)); tone(1318.5, 0.44, 0.9, 'triangle', 0.2); },
+    ko() { tone(196, 0, 0.35, 'sawtooth', 0.16); tone(155.56, 0.28, 0.75, 'sawtooth', 0.18); },
+    flip() { tone(1700, 0, 0.05, 'square', 0.035); },
+  };
+})();
+
+/* ================= synchronisation ================= */
+function act(fn) {
+  const s = JSON.parse(JSON.stringify(G));
+  fn(s);
+  s.rev = Math.max(G.rev + 1, Math.floor(Date.now() / 1000));
+  s.at = Date.now();
+  s.by = DEVICE;
+  G = s;
+  acted = true;
+  stateChanged(true);
+}
+function applyRemote(d, o) {
+  const s = normState(d);
+  if (!s) return;
+  if (s.rev === G.rev && s.at === G.at && s.by === G.by) return;
+  const force = o && o.first && !acted;
+  if (!force && !newer(s, G)) return;
+  G = s;
+  if (o && o.adopt) { tv.seq = G.audio.seq; if (G.phase === 'playing') tv.cut = true; }
+  stateChanged(false);
+}
+function stateChanged(local) {
+  LS.set('mm-state', G);
+  if (local) pushState();
+  tvSync();
+  render();
+}
+function emitState() {
+  if (!caps.room) return;
+  try {
+    if (JSON.stringify(G).length > 3400) return;
+    caps.room.emit('state', G).catch(() => {});
+  } catch (e) { /* rien */ }
+}
+let writing = false, writeAgain = false;
+async function writeState(retry) {
+  if (!caps.db) return;
+  if (writing) { writeAgain = true; return; }
+  writing = true;
+  let failed = null;
+  try { await caps.db.doc('live/state').set(JSON.parse(JSON.stringify(G))); net.writeErr = null; }
+  catch (e) { failed = (e && e.code) || 'unavailable'; net.writeErr = failed; }
+  writing = false;
+  if (writeAgain) { writeAgain = false; writeState(); }
+  else if (failed && failed !== 'invalid_argument' && failed !== 'revoked' && !retry) setTimeout(() => writeState(true), 1200 + Math.random() * 800);
+  renderStatus();
+}
+function pushState() {
+  const at = G.at;
+  emitState();
+  [700, 2500].forEach((ms) => setTimeout(() => { if (G.by === DEVICE && G.at === at) emitState(); }, ms));
+  writeState();
+}
+const tvPeer = () => {
+  let best = null;
+  for (const p of net.peers) {
+    if (!p || !p.presence || p.presence.role !== 'tv' || (p.isMe && p.sameTab)) continue;
+    if (!best || p.updatedAt > best.updatedAt) best = p;
+  }
+  return best;
+};
+const remoteCount = () => net.peers.filter((p) => p && p.presence && p.presence.role === 'remote').length;
+function peersChanged() {
+  const p = tvPeer();
+  const sig = p ? [p.peer, p.presence.cut, p.presence.snd, p.presence.seq, Array.isArray(p.presence.have) ? p.presence.have.length : -1].join('|') : 'none';
+  if (sig !== net.tvSig) {
+    net.tvSig = sig;
+    if (view === 'remote' || view === 'home') render();
+  } else if (view === 'remote') updateRemoteLive();
+  if (view === 'tv') renderTvBand();
+}
+function publishRole() {
+  if (!caps.room) return;
+  if (view === 'tv' && tv.active) { publishTv(); return; }
+  caps.room.presence({ role: view, seq: null, cut: null, snd: null, t: null, have: null }).catch(() => {});
+}
+function restoreLocal() {
+  const s = normState(LS.get('mm-state'));
+  if (s && !acted) { G = s; tv.seq = G.audio.seq; if (G.phase === 'playing') tv.cut = true; }
+}
+const saver = { timers: new Map(), ver: new Map(), busy: new Set(), dirty: new Set(), savedAt: new Map(), gone: new Set() };
+function saveNote(kind) {
+  const el = $('#ed-save');
+  if (!el) return;
+  el.textContent = kind === 'wait' ? 'Enregistrement…' : kind === 'ok' ? 'Enregistré' : kind === 'local' ? 'Enregistré sur cet appareil seulement' : kind === 'err' ? 'Enregistrement impossible pour l’instant. Vos modifications restent sur cet appareil.' : '';
+}
+function scheduleSave(id) {
+  saver.dirty.add(id);
+  saver.ver.set(id, (saver.ver.get(id) || 0) + 1);
+  songsVer++;
+  cacheSongs();
+  saveNote('wait');
+  clearTimeout(saver.timers.get(id));
+  saver.timers.set(id, setTimeout(() => flushSave(id), 700));
+}
+async function flushSave(id, retry) {
+  if (!net.resolved) { saver.timers.set(id, setTimeout(() => flushSave(id), 1000)); return; }
+  const s = songs.get(id);
+  if (!s) { saver.dirty.delete(id); return; }
+  if (!caps.db) { saver.dirty.delete(id); LS.set('mm-songs-local', true); saveNote('local'); return; }
+  if (saver.busy.has(id)) return;
+  saver.busy.add(id);
+  const v = saver.ver.get(id);
+  let failed = null;
+  try {
+    await caps.db.doc('songs/' + id).set(songDoc(s));
+    saver.savedAt.set(id, Date.now());
+    if (saver.ver.get(id) === v) saver.dirty.delete(id);
+    saveNote(saver.dirty.size ? 'wait' : 'ok');
+  } catch (e) { failed = (e && e.code) || 'unavailable'; saveNote('err'); }
+  saver.busy.delete(id);
+  if (saver.ver.get(id) !== v && songs.has(id)) flushSave(id);
+  else if (failed && failed !== 'invalid_argument' && failed !== 'quota_exceeded' && failed !== 'revoked' && !retry) setTimeout(() => flushSave(id, true), 3000);
+}
+async function deleteSong(id) {
+  songs.delete(id);
+  saver.dirty.delete(id);
+  saver.gone.add(id);
+  clearTimeout(saver.timers.get(id));
+  if (ed.id === id) ed.id = null;
+  AudioStore.del(id);
+  songsChanged();
+  if (caps.db) { try { await caps.db.doc('songs/' + id).delete(); } catch (e) { /* rien */ } }
+}
+function songsChanged() {
+  songsVer++;
+  cacheSongs();
+  render();
+  if (view === 'tv') AudioStore.refresh().then(publishTv);
+}
+function onSongsSnap(snap) {
+  const seen = new Set();
+  let changed = false;
+  for (const d of snap.docs) {
+    if (!d.exists) continue;
+    seen.add(d.id);
+    if (saver.dirty.has(d.id) || saver.gone.has(d.id)) continue;
+    const n = normSong(d.id, d.data()), cur = songs.get(d.id);
+    if (!cur) { songs.set(d.id, n); changed = true; }
+    else if (JSON.stringify(cur) !== JSON.stringify(n)) { Object.assign(cur, n); changed = true; }
+  }
+  if (!(snap.metadata && snap.metadata.fromCache)) {
+    const localOnly = LS.get('mm-songs-local') === true;
+    for (const id of [...songs.keys()]) {
+      if (seen.has(id) || saver.dirty.has(id)) continue;
+      if (localOnly) scheduleSave(id);
+      else if (Date.now() - (saver.savedAt.get(id) || 0) > 15000) { songs.delete(id); changed = true; }
+    }
+    if (localOnly) LS.set('mm-songs-local', false);
+  }
+  if (changed) songsChanged();
+}
+/* Hors de Claude (copie hébergée ailleurs) : les fenêtres du même navigateur se parlent entre elles. */
+function localRoom() {
+  if (typeof BroadcastChannel !== 'function') return null;
+  let bc;
+  try { bc = new BroadcastChannel('mots-manquants'); } catch (e) { return null; }
+  const me = DEVICE + newId(), handlers = {}, peerCbs = [], others = new Map();
+  let mine = {};
+  const mk = (peer, presence, same) => ({ peer, by: null, isMe: true, sameTab: same, kind: 'viewer', guest: false, presence, updatedAt: Date.now() });
+  const all = () => [mk(me, mine, true), ...others.values()];
+  const fire = (joined) => {
+    const peers = all();
+    for (const f of peerCbs) { try { f({ peers, joined: joined || [], left: [], updated: [] }); } catch (e) { /* rien */ } }
+  };
+  const post = (m) => { try { bc.postMessage(m); } catch (e) { /* rien */ } };
+  bc.onmessage = (ev) => {
+    const m = ev.data || {};
+    if (!m.from || m.from === me) return;
+    if (m.k === 'emit') {
+      for (const f of handlers[m.topic] || []) {
+        try { f({ topic: m.topic, data: m.data, peer: m.from, by: null, isMe: true, sameTab: false, kind: 'viewer', guest: false }); } catch (e) { /* rien */ }
+      }
+    } else if (m.k === 'presence') {
+      const fresh = !others.has(m.from), p = mk(m.from, m.p || {}, false);
+      others.set(m.from, p);
+      fire(fresh ? [p] : []);
+    } else if (m.k === 'hello') post({ k: 'presence', from: me, p: mine });
+    else if (m.k === 'bye' && others.delete(m.from)) fire();
+  };
+  window.addEventListener('pagehide', () => post({ k: 'bye', from: me }));
+  setTimeout(() => post({ k: 'hello', from: me }), 0);
+  return {
+    emit: async (topic, data) => { post({ k: 'emit', topic, data: data === undefined ? null : JSON.parse(JSON.stringify(data)), from: me }); },
+    on: (topic, fn) => { (handlers[topic] = handlers[topic] || []).push(fn); return () => {}; },
+    presence: async (patch) => {
+      const next = Object.assign({}, mine);
+      for (const [k, v] of Object.entries(patch || {})) { if (v === null) delete next[k]; else next[k] = v; }
+      mine = next;
+      post({ k: 'presence', from: me, p: mine });
+      fire();
+    },
+    onPeers: (fn) => { peerCbs.push(fn); setTimeout(() => { const peers = all(); fn({ peers, joined: peers, left: [], updated: [] }); }, 0); return () => {}; },
+    onConnection: (fn) => { setTimeout(() => fn(true), 0); return () => {}; },
+  };
+}
+function reloadSongs() {
+  const arr = LS.get('mm-songs');
+  if (!Array.isArray(arr)) return;
+  const seen = new Set();
+  for (const d of arr.slice(0, 300)) {
+    if (!d || typeof d.id !== 'string' || d.id === 'demo') continue;
+    seen.add(d.id);
+    if (saver.dirty.has(d.id)) continue;
+    const n = normSong(d.id, d), cur = songs.get(d.id);
+    if (!cur) songs.set(d.id, n); else Object.assign(cur, n);
+  }
+  for (const id of [...songs.keys()]) if (!seen.has(id) && !saver.dirty.has(id)) songs.delete(id);
+  songsVer++;
+  render();
+  if (view === 'tv') AudioStore.refresh().then(publishTv);
+}
+async function initCaps() {
+  let tries = 0;
+  while (!(window.claude && typeof window.claude.use === 'function') && tries++ < 20) await new Promise((r) => setTimeout(r, 100));
+  const has = window.claude && typeof window.claude.use === 'function';
+  const use = (n) => (has ? Promise.resolve().then(() => window.claude.use(n)).catch(() => null) : Promise.resolve(null));
+  const [db, room] = await Promise.all([use('db'), use('room')]);
+  caps.db = db || null;
+  caps.room = room || null;
+  if (!caps.db && !caps.room) { caps.room = localRoom(); net.local = !!caps.room; }
+  net.resolved = true;
+  if (!caps.db) restoreLocal();
+  if (caps.db) {
+    try {
+      caps.db.doc('live/state').onSnapshot((snap) => {
+        const definitive = !(snap.metadata && snap.metadata.fromCache);
+        if (snap.exists) applyRemote(snap.data(), { first: net.dbFirst, adopt: !net.dbSettled });
+        net.dbFirst = false;
+        if (definitive) net.dbSettled = true;
+      }, () => { net.dbSettled = true; });
+      setTimeout(() => { net.dbSettled = true; }, 8000);
+      caps.db.collection('songs').onSnapshot(onSongsSnap, () => {});
+    } catch (e) { caps.db = null; restoreLocal(); }
+  }
+  if (caps.room) {
+    try {
+      caps.room.on('state', (m) => { if (m && !m.sameTab) applyRemote(m.data, null); }, () => {});
+      caps.room.onPeers((c) => {
+        net.peers = c.peers || [];
+        if (acted && G.by === DEVICE && (c.joined || []).some((p) => !(p.isMe && p.sameTab))) emitState();
+        peersChanged();
+      }, () => { net.peers = []; peersChanged(); });
+      caps.room.onConnection((c) => { net.connected = !!c; renderStatus(); if (c) publishRole(); }, () => { net.connected = false; });
+    } catch (e) { caps.room = null; }
+  }
+  publishRole();
+  tvSync();
+  render();
+}
+
+/* ================= actions de l'animateur ================= */
+const A = {
+  lobby() { act((s) => { s.phase = 'lobby'; s.songId = null; s.audio.mode = 'idle'; }); },
+  board() { act((s) => { s.phase = 'board'; s.songId = null; s.audio.mode = 'idle'; s.verdict = null; s.hint = false; }); },
+  pick(id) { act((s) => { s.phase = 'ready'; s.songId = id; s.hint = false; s.verdict = null; s.gained = 0; s.audio.mode = 'idle'; }); },
+  play() { act((s) => { s.phase = 'playing'; s.hint = false; s.verdict = null; s.gained = 0; s.audio = { mode: 'play', seq: Date.now() }; }); },
+  pause() { act((s) => { if (s.phase === 'playing') s.audio.mode = 'pause'; }); },
+  resume() { act((s) => { if (s.phase === 'playing') s.audio.mode = 'play'; }); },
+  cut() { act((s) => { s.phase = 'cut'; s.audio.mode = 'idle'; }); },
+  hint() { act((s) => { s.hint = true; s.phase = 'cut'; s.audio.mode = 'idle'; }); },
+  verdict(ok) {
+    act((s) => {
+      const pts = ok ? pointsFor(getSong(s.songId), s.hint) : 0;
+      s.phase = 'judged'; s.verdict = ok ? 'ok' : 'ko'; s.gained = pts;
+      s.teams[s.turn].score += pts;
+      s.played[s.songId] = [s.turn, ok ? 1 : 0, pts];
+      s.audio.mode = 'idle';
+    });
+  },
+  undo() {
+    act((s) => {
+      if (s.phase !== 'judged') return;
+      const p = s.played[s.songId];
+      if (p) { s.teams[p[0]].score -= p[2]; delete s.played[s.songId]; }
+      s.phase = 'cut'; s.verdict = null; s.gained = 0; s.audio.mode = 'idle';
+    });
+  },
+  outro() { act((s) => { s.audio = { mode: 'outro', seq: Date.now() }; }); },
+  stopOutro() { act((s) => { s.audio.mode = 'idle'; }); },
+  next() { act((s) => { s.phase = 'board'; s.songId = null; s.turn = 1 - s.turn; s.audio.mode = 'idle'; s.verdict = null; s.hint = false; }); },
+  final() { act((s) => { s.phase = 'final'; s.songId = null; s.audio.mode = 'idle'; }); },
+  reset() {
+    act((s) => {
+      s.teams.forEach((t) => { t.score = 0; });
+      s.played = {}; s.phase = 'lobby'; s.songId = null; s.turn = 0; s.hint = false; s.verdict = null; s.gained = 0; s.audio.mode = 'idle';
+    });
+  },
+  turn(i) { if (G.turn !== i) act((s) => { s.turn = i; }); },
+  score(i, d) { act((s) => { s.teams[i].score += d; }); },
+  name(i, v) { act((s) => { s.teams[i].name = String(v).trim().slice(0, 24) || defaultState().teams[i].name; }); },
+};
+
+/* ================= écran télé : lecture ================= */
+const tv = { active: false, seq: null, started: null, cut: false, snd: 'off', loaded: null, job: 0, busy: 0, t: 0, preId: null, scene: null, sceneKey: null, hold: false, gateMode: '', lastPub: 0, drawer: false };
+const player = new Audio();
+player.preload = 'auto';
+let silentUrl = null;
+function metaReady() {
+  return new Promise((res) => {
+    if (player.readyState >= 1) { res(); return; }
+    let done = false;
+    const fin = () => {
+      if (done) return;
+      done = true;
+      player.removeEventListener('loadedmetadata', fin);
+      player.removeEventListener('error', fin);
+      res();
+    };
+    player.addEventListener('loadedmetadata', fin);
+    player.addEventListener('error', fin);
+    setTimeout(fin, 5000);
+  });
+}
+async function tvStart(song, from) {
+  const job = ++tv.job;
+  tv.busy = job;
+  const release = () => { if (tv.busy === job) tv.busy = 0; };
+  const url = await AudioStore.url(song.id);
+  if (job !== tv.job) { release(); return; }
+  if (!url) {
+    release();
+    tv.snd = 'missing'; tv.loaded = null;
+    if (G.phase === 'playing') tv.cut = true;
+    publishTv(); render();
+    return;
+  }
+  if (tv.loaded !== song.id) { player.src = url; tv.loaded = song.id; }
+  await metaReady();
+  if (job !== tv.job) { release(); return; }
+  try { player.currentTime = from; } catch (e) { /* rien */ }
+  let blocked = false;
+  try { await player.play(); } catch (e) { blocked = true; }
+  if (!blocked) tv.started = tv.seq;
+  release();
+  if (job !== tv.job) { tvSync(); return; }
+  tv.snd = blocked ? 'blocked' : 'ok';
+  publishTv(); render();
+}
+function tvPreload(song) {
+  AudioStore.url(song.id).then((url) => {
+    if (G.songId !== song.id) return;
+    if (!url) tv.snd = 'missing';
+    else {
+      if (tv.snd === 'missing') tv.snd = 'ok';
+      if (tv.loaded !== song.id && G.phase === 'ready') {
+        player.src = url; tv.loaded = song.id;
+        try { player.load(); } catch (e) { /* rien */ }
+      }
+    }
+    publishTv();
+    if (view === 'tv') renderTV();
+  });
+}
+function tvSync() {
+  if (!tv.active) return;
+  const song = getSong(G.songId), a = G.audio;
+  if (tv.seq === null) { tv.seq = a.seq; if (G.phase === 'playing') tv.cut = true; }
+  if (G.phase === 'playing' && song) {
+    if (a.seq !== tv.seq) { tv.seq = a.seq; tv.cut = false; tv.t = song.start; tvStart(song, song.start); }
+    else if (!tv.cut) {
+      if (a.mode === 'pause') { tv.job++; tv.busy = 0; player.pause(); }
+      else if (!tv.busy && tv.snd !== 'blocked' && tv.started !== a.seq) tvStart(song, song.start);
+      else if (!tv.busy && player.paused && tv.loaded === song.id && tv.snd !== 'blocked') player.play().catch(() => {});
+    }
+  } else if (G.phase === 'judged' && song && a.mode === 'outro') {
+    if (a.seq !== tv.seq) { tv.seq = a.seq; tv.cut = true; tvStart(song, isFinite(stopOf(song)) ? song.stop : song.start); }
+  } else {
+    tv.job++; tv.busy = 0;
+    if (!player.paused) player.pause();
+    if (G.phase === 'cut') tv.cut = true;
+    if (G.phase === 'board' || G.phase === 'lobby') tv.preId = null;
+    if (G.phase === 'ready' && song && tv.preId !== song.id) { tv.preId = song.id; tvPreload(song); }
+  }
+  publishTv();
+}
+function tvTick() {
+  if (!tv.active || view !== 'tv') return;
+  const song = getSong(G.songId);
+  if (song && G.phase === 'playing' && !tv.cut && tv.loaded === song.id && !tv.busy) {
+    tv.t = player.currentTime || 0;
+    if (tv.t >= stopOf(song) - 0.03 || player.ended) {
+      player.pause();
+      tv.cut = true;
+      publishTv();
+      render();
+    } else {
+      refreshSong();
+      if (tv.drawer) updateRemoteLive();
+    }
+    if (performance.now() - tv.lastPub > 600) publishTv();
+  }
+}
+function publishTv() {
+  tv.lastPub = performance.now();
+  if (!caps.room || view !== 'tv' || !tv.active) return;
+  caps.room.presence({
+    role: 'tv', seq: tv.seq, cut: tv.cut, snd: tv.snd, t: Math.round(tv.t * 10) / 10,
+    have: [...AudioStore.ids].slice(0, 150),
+  }).catch(() => {});
+}
+function tvActivate(fullscreen) {
+  sfx.init();
+  try {
+    if (!silentUrl) silentUrl = URL.createObjectURL(wavBlob(new Float32Array(2205), 22050));
+    player.src = silentUrl;
+    tv.loaded = null;
+    const p = player.play();
+    if (p && p.then) p.then(() => { if (tv.loaded === null) player.pause(); }).catch(() => {});
+  } catch (e) { /* rien */ }
+  tv.active = true; tv.snd = 'ok'; tv.seq = null; tv.preId = null;
+  if (fullscreen) toggleFullscreen(true);
+  AudioStore.refresh().then(publishTv);
+  tvSync();
+  render();
+}
+function tvUnblock() {
+  sfx.init();
+  tv.snd = 'ok';
+  const song = getSong(G.songId);
+  if (song && G.phase === 'playing' && !tv.cut) tvStart(song, song.start);
+  render();
+}
+function tvLeave() {
+  tv.active = false; tv.job++; tv.busy = 0; tv.drawer = false;
+  try { player.pause(); } catch (e) { /* rien */ }
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* rien */ }
+}
+function dockMsg(text) {
+  const el = $('#dock-msg');
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(dockMsg.t);
+  dockMsg.t = setTimeout(() => { el.hidden = true; }, 6000);
+}
+function toggleFullscreen(onlyEnter) {
+  try {
+    if (!document.fullscreenElement) {
+      const el = document.documentElement;
+      const p = el.requestFullscreen ? el.requestFullscreen() : null;
+      if (p && p.catch) p.catch(() => dockMsg('Plein écran refusé ici. Ouvrez la page de l’artefact seule, puis utilisez la touche F11.'));
+      else if (!p) dockMsg('Plein écran indisponible ici. Utilisez la touche F11.');
+    } else if (!onlyEnter) document.exitFullscreen();
+  } catch (e) { dockMsg('Plein écran indisponible ici. Utilisez la touche F11.'); }
+}
+
+/* ================= écran télé : affichage ================= */
+function renderTvScores() {
+  if (tv.hold) return;
+  [0, 1].forEach((i) => {
+    const el = $('#tv-team-' + i), t = G.teams[i], sc = $('.score', el), v = String(t.score);
+    $('.name', el).textContent = t.name;
+    if (sc.textContent !== v) {
+      sc.textContent = v;
+      if (tv.active) { sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump'); }
+    }
+    el.classList.toggle('turn', G.turn === i && G.phase !== 'lobby' && G.phase !== 'final');
+  });
+}
+function sceneKey() {
+  const names = G.teams.map((t) => t.name).join('|');
+  switch (G.phase) {
+    case 'lobby': return 'lobby|' + songsVer + '|' + names;
+    case 'board': return 'board|' + songsVer + '|' + JSON.stringify(G.played) + '|' + G.turn + '|' + names;
+    case 'final': return 'final|' + names + '|' + G.teams.map((t) => t.score).join('|');
+    case 'ready': return 'ready|' + G.songId + '|' + G.turn + '|' + songsVer + '|' + names;
+    default: return 'song|' + G.songId + '|' + songsVer;
+  }
+}
+function sceneLobby() {
+  const ready = songList().filter(isReady).length;
+  return h('div', { class: 'scene lobby' },
+    h('div', { class: 'marquee' }, h('h1', { text: 'Les Mots Manquants' })),
+    h('p', { class: 'tagline', text: 'La musique s’arrête. À vous de chanter la suite.' }),
+    h('p', { class: 'count', text: G.teams[0].name + ' contre ' + G.teams[1].name + ' · ' + plural(ready, 'chanson prête', 'chansons prêtes') }));
+}
+function sceneBoard() {
+  const list = songList(), n = list.length;
+  const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : n <= 25 ? 5 : 6;
+  const fs = n <= 9 ? 3.1 : n <= 16 ? 2.6 : n <= 25 ? 2.1 : 1.7;
+  return h('div', { class: 'scene' },
+    h('p', { class: 'scene-k', text: G.teams[G.turn].name + ' choisit une chanson' }),
+    h('div', { class: 'board', style: '--cols:' + cols + ';font-size:calc(' + fs + ' * var(--u))' + (n <= 1 ? ';max-width:52%' : '') }, list.map((s) => {
+      const p = G.played[s.id];
+      return h('div', { class: 'card' + (p ? ' done ' + (p[1] ? 'ok' : 'ko') : '') },
+        h('span', { class: 'pts', text: String(s.points) }),
+        h('span', { class: 'card-txt' },
+          h('span', { class: 't', text: s.title || 'Sans titre' }),
+          h('span', { class: 'a', text: p ? (p[1] ? 'Trouvée par ' : 'Ratée par ') + G.teams[p[0]].name : s.artist })));
+    })));
+}
+function sceneReady(song) {
+  return h('div', { class: 'scene ready' },
+    h('p', { class: 'ready-pts', text: song.points + ' points' }),
+    h('h2', { class: 'ready-title', text: song.title || 'Sans titre' }),
+    song.artist ? h('p', { class: 'ready-artist', text: song.artist }) : null,
+    h('p', { class: 'ready-turn ' + (G.turn ? 'turn-b' : 'turn-a'), text: G.teams[G.turn].name + ', à vous de jouer' }));
+}
+function sceneFinal() {
+  const [a, b] = G.teams;
+  const tie = a.score === b.score, w = a.score > b.score ? 0 : 1;
+  return h('div', { class: 'scene final' },
+    h('p', { class: 'final-k', text: tie ? 'Fin de la partie' : 'Victoire de' }),
+    h('h2', { class: 'final-name ' + (tie ? '' : w ? 'turn-b' : 'turn-a'), text: tie ? 'Égalité parfaite' : G.teams[w].name }),
+    h('p', { class: 'final-score', text: a.name + ' ' + a.score + ' · ' + b.score + ' ' + b.name }));
+}
+function sceneSong(song) {
+  const lines = parseLyrics(song.lyrics), words = wordsOf(song.answer);
+  const eff = [];
+  lines.forEach((l, i) => eff.push(l.t != null ? l.t : i ? eff[i - 1] : song.start));
+  const lineEls = lines.map((l) => h('p', { class: 'lyr-line', text: l.text }));
+  const wait = h('p', { class: 'lyr-wait', text: 'Écoutez bien…' });
+  const tiles = words.map(() => h('span', { class: 'tile' }));
+  const note = h('p', { class: 'gap-note' });
+  const warn = h('p', { class: 'tv-warn', hidden: true, text: 'Fichier audio absent sur cet écran : ajoutez-le dans « Mes chansons » sur ce PC.' });
+  const root = h('div', { class: 'scene song' + (lines.some((l) => l.text.length > 40) ? ' long' : '') },
+    h('div', { class: 'lyr' }, lineEls.length ? lineEls : wait), h('div', { class: 'gap' }, tiles), note, warn);
+  tv.scene = { root, song, eff, lineEls, tiles, words, note, warn, wait, revealed: false, sawCut: false };
+  return root;
+}
+const initial = (w) => { const m = String(w).match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '?'; };
+function refreshSong() {
+  const sc = tv.scene;
+  if (!sc || view !== 'tv') return;
+  const song = sc.song, phase = G.phase;
+  const cut = phase === 'cut' || phase === 'judged' || (phase === 'playing' && tv.cut);
+  const t = cut ? Infinity : tv.t;
+  let reached = 0;
+  sc.eff.forEach((e, i) => { if (e <= t + 0.05) reached = i + 1; });
+  sc.lineEls.forEach((el, i) => {
+    el.classList.toggle('in', i < reached);
+    el.classList.toggle('cur', i === reached - 1);
+    el.classList.toggle('gone', i < reached - 4);
+  });
+  sc.root.classList.toggle('is-cut', cut);
+  sc.warn.hidden = !(tv.snd === 'missing' && tv.loaded !== song.id);
+  if (!sc.revealed) {
+    const hinted = G.hint && cut;
+    sc.tiles.forEach((tile, i) => { tile.textContent = hinted ? initial(sc.words[i]) : ''; tile.classList.toggle('hinted', hinted); });
+    sc.note.textContent = sc.words.length ? plural(sc.words.length, 'mot à trouver', 'mots à trouver') + (hinted ? ' · initiales affichées, points divisés par deux' : '') : 'Chantez la suite !';
+    if (cut && phase !== 'judged') sc.sawCut = true;
+    if (phase === 'judged') reveal(sc, sc.sawCut && !REDUCED);
+  }
+  const prog = $('#tv-prog'), end = stopOf(song), on = phase === 'playing' && !cut && isFinite(end);
+  prog.classList.toggle('on', on);
+  if (on) prog.firstElementChild.style.width = clamp((tv.t - song.start) / (end - song.start), 0, 1) * 100 + '%';
+}
+function reveal(sc, animate) {
+  sc.revealed = true;
+  const ok = G.verdict === 'ok', cls = ok ? 'ok' : 'ko', gained = G.gained;
+  const finish = () => {
+    tv.hold = false;
+    if (tv.scene !== sc) { renderTvScores(); return; }
+    sc.tiles.forEach((tile, i) => { tile.textContent = sc.words[i]; tile.className = 'tile ' + cls; });
+    sc.root.classList.add('judged', cls);
+    sc.note.textContent = ok ? 'Bravo ! +' + gained : 'Raté';
+    renderTvScores();
+    if (animate) { if (ok) sfx.ok(); else sfx.ko(); }
+  };
+  if (!animate || !sc.tiles.length) { finish(); return; }
+  tv.hold = true;
+  sc.tiles.forEach((tile, i) => {
+    setTimeout(() => {
+      if (tv.scene !== sc) return;
+      tile.classList.add('flip');
+      sfx.flip();
+      setTimeout(() => { tile.textContent = sc.words[i]; tile.classList.remove('hinted'); }, 140);
+    }, 300 + i * 260);
+  });
+  setTimeout(finish, 300 + sc.tiles.length * 260 + 380);
+}
+function confetti() {
+  if (REDUCED) return;
+  const c = $('#tv-confetti'), ctx = c.getContext('2d');
+  const W = (c.width = c.clientWidth), H = (c.height = c.clientHeight);
+  const cols = ['#f3b63f', '#f7eedc', '#41cdb8', '#ff8160'];
+  const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * W, y: -Math.random() * H * 0.6, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 4, s: 5 + Math.random() * 8, r: Math.random() * 6, c: cols[Math.floor(Math.random() * 4)] }));
+  const t0 = performance.now();
+  (function step(now) {
+    ctx.clearRect(0, 0, W, H);
+    if (now - t0 > 7000 || G.phase !== 'final' || view !== 'tv') return;
+    for (const p of ps) {
+      p.x += p.vx; p.y += p.vy; p.r += 0.1;
+      if (p.y > H) p.y = -10;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore();
+    }
+    requestAnimationFrame(step);
+  })(t0);
+}
+function renderTvBand() {
+  const song = getSong(G.songId);
+  const inSong = song && ['ready', 'playing', 'cut', 'judged'].includes(G.phase);
+  $('#tv-info').textContent = inSong && G.phase !== 'ready' ? song.points + ' points · ' + (song.title || 'Sans titre') + (song.artist ? ' · ' + song.artist : '') : '';
+  let sub = '';
+  if (inSong && G.phase !== 'ready') sub = G.phase === 'playing' && G.audio.mode === 'pause' ? 'En pause' : G.teams[G.turn].name + ' joue';
+  $('#tv-sub').textContent = sub;
+  $('#tv-link').textContent = !net.resolved ? 'Connexion…' : remoteCount() ? 'Télécommande reliée' : caps.room ? 'En attente de la télécommande' : 'Pilotage sur cet écran : touche P';
+}
+function renderGate() {
+  const gate = $('#tv-gate');
+  const mode = !tv.active ? 'start' : tv.snd === 'blocked' ? 'blocked' : '';
+  if (mode === tv.gateMode) return;
+  tv.gateMode = mode;
+  gate.hidden = !mode;
+  if (mode === 'start') {
+    gate.replaceChildren(h('div', { class: 'gate-card' },
+      h('h2', { text: 'Préparer l’écran télé' }),
+      h('ol', null,
+        h('li', { text: 'Ouvrez cette page dans Chrome sur le PC.' }),
+        h('li', { text: 'Menu ⋮ de Chrome, puis « Caster… » (rangé dans « Caster, enregistrer et partager »). Choisissez la télé et la source « Onglet ».' }),
+        h('li', { text: 'Activez l’écran ci-dessous. Le navigateur a besoin de ce clic pour autoriser la musique.' })),
+      h('button', { class: 'btn primary big', type: 'button', text: 'Activer en plein écran', onclick: () => tvActivate(true) }),
+      h('button', { class: 'btn', type: 'button', text: 'Activer sans plein écran', onclick: () => tvActivate(false) }),
+      h('a', { class: 'btn sm', href: '#', 'data-go': 'home', text: '← Accueil' })));
+  } else if (mode === 'blocked') {
+    gate.replaceChildren(h('div', { class: 'gate-card' },
+      h('h2', { text: 'Le son est bloqué' }),
+      h('p', { text: 'Le navigateur attend un clic sur cet écran avant de jouer la musique.' }),
+      h('button', { class: 'btn primary big', type: 'button', text: 'Autoriser la musique', onclick: tvUnblock })));
+  } else gate.replaceChildren();
+}
+function renderTV() {
+  if (tv.scene && tv.scene.revealed && G.phase !== 'judged') tv.sceneKey = null;
+  const key = sceneKey();
+  if (key !== tv.sceneKey) {
+    tv.sceneKey = key; tv.scene = null; tv.hold = false;
+    const song = getSong(G.songId);
+    let node;
+    if (G.phase === 'lobby') node = sceneLobby();
+    else if (G.phase === 'board') node = sceneBoard();
+    else if (G.phase === 'final') node = sceneFinal();
+    else if (!song) node = h('div', { class: 'scene' }, h('p', { class: 'scene-k', text: 'Chanson introuvable sur cet écran' }));
+    else if (G.phase === 'ready') node = sceneReady(song);
+    else node = sceneSong(song);
+    $('#tv-stage').replaceChildren(node);
+    $('#tv-prog').classList.remove('on');
+    if (G.phase === 'final' && tv.active) confetti();
+  }
+  if (tv.scene) refreshSong();
+  renderTvScores();
+  renderTvBand();
+  renderGate();
+  const drawer = $('#tv-drawer');
+  drawer.classList.toggle('open', tv.drawer);
+  if (tv.drawer) renderRemote($('#tv-remote'), true);
+}
+
+/* ================= télécommande ================= */
+let rl = {};
+let settingsOpen = false;
+function effPhase(local) {
+  if (G.phase !== 'playing') return G.phase;
+  if (local) return tv.active && tv.cut ? 'cut' : 'playing';
+  const p = tvPeer();
+  return p && p.presence.cut === true && p.presence.seq === G.audio.seq ? 'cut' : 'playing';
+}
+function confirmBtn(label, confirmLabel, onYes, cls) {
+  let armed = false, timer = null;
+  const b = h('button', { class: 'btn ' + (cls || ''), type: 'button', text: label, onclick: () => {
+    if (!armed) {
+      armed = true; b.textContent = confirmLabel; b.classList.add('armed');
+      timer = setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('armed'); }, 3500);
+    } else { clearTimeout(timer); onYes(); }
+  } });
+  return b;
+}
+const B = (label, fn, cls, more) => h('button', Object.assign({ class: 'btn ' + (cls || ''), type: 'button', text: label, onclick: fn }, more || {}));
+function answerCard(song) {
+  const n = wordsOf(song.answer).length;
+  return h('div', { class: 'answer' },
+    h('span', { class: 'answer-k', text: 'À trouver · visible ici seulement' }),
+    h('p', { class: 'answer-v', text: song.answer || 'Paroles à trouver non renseignées' }),
+    n ? h('span', { class: 'answer-n', text: plural(n, 'mot', 'mots') }) : null);
+}
+function songWarnings(song, local, audioOnly) {
+  const out = [];
+  if (!audioOnly && !isReady(song)) out.push('Cette chanson est à compléter dans « Mes chansons » (paroles à trouver ou coupure).');
+  let missing = false;
+  if (local) missing = !AudioStore.has(song.id);
+  else { const p = tvPeer(); missing = !!(p && Array.isArray(p.presence.have) && !song.demo && !p.presence.have.includes(song.id)); }
+  if (missing) out.push('Fichier audio absent sur l’écran télé : ajoutez-le dans « Mes chansons » sur le PC.');
+  return out.map((t) => h('p', { class: 'warn', text: t }));
+}
+function renderRemote(root, local) {
+  const ae = document.activeElement;
+  if (ae && root.contains(ae) && ae.tagName === 'INPUT') { root.dataset.stale = '1'; return; }
+  delete root.dataset.stale;
+  rl = { local };
+  const eff = effPhase(local), song = getSong(G.songId), team = G.teams[G.turn];
+  const scores = h('div', { class: 'scores' }, [0, 1].map((i) => {
+    const t = G.teams[i], on = G.turn === i;
+    return h('div', { class: 'rteam ' + (i ? 'b' : 'a') + (on ? ' turn' : '') },
+      h('button', { class: 'rteam-main', type: 'button', 'aria-pressed': String(on), onclick: () => A.turn(i) },
+        h('span', { class: 'rname', text: t.name }),
+        h('span', { class: 'rscore', text: String(t.score) }),
+        h('span', { class: 'rturn', text: on ? 'Joue maintenant' : 'Donner la main' })),
+      h('div', { class: 'rpm' },
+        B('−5', () => A.score(i, -5), 'sm', { 'aria-label': 'Retirer 5 points à ' + t.name }),
+        B('+5', () => A.score(i, 5), 'sm', { 'aria-label': 'Ajouter 5 points à ' + t.name })));
+  }));
+  const panel = h('div', { class: 'panel' });
+  const P = (...n) => panel.append(...n.flat(Infinity).filter(Boolean));
+  const verdicts = (s) => h('div', { class: 'row2' },
+    B('Bonne réponse · +' + pointsFor(s, G.hint), () => A.verdict(true), 'good big'),
+    B('Mauvaise réponse', () => A.verdict(false), 'bad big'));
+  if (G.phase === 'lobby') {
+    P(h('h2', { text: 'L’écran affiche l’accueil' }),
+      h('p', { class: 'hint', text: 'Réglez les noms des équipes plus bas, puis ouvrez la grille.' }),
+      B('Afficher la grille des chansons', A.board, 'primary big'));
+  } else if (G.phase === 'board') {
+    P(h('h2', { text: team.name + ' choisit une chanson' }),
+      h('div', { class: 'rsongs' }, songList().map((s) => {
+        const p = G.played[s.id], tags = [];
+        if (s.artist) tags.push(s.artist);
+        if (p) tags.push((p[1] ? 'trouvée par ' : 'ratée par ') + G.teams[p[0]].name);
+        if (!isReady(s)) tags.push('à compléter');
+        return h('button', { class: 'rsong' + (p ? ' done' : ''), type: 'button', onclick: () => A.pick(s.id) },
+          h('span', { class: 'rsong-pts', text: String(s.points) }),
+          h('span', { class: 'rsong-txt' }, h('b', { text: s.title || 'Sans titre' }), tags.length ? h('small', { text: tags.join(' · ') }) : null));
+      })),
+      B('Afficher le podium final', A.final));
+  } else if (G.phase === 'final') {
+    P(h('h2', { text: 'Le podium est affiché' }), B('Revenir à la grille', A.board, 'primary big'));
+  } else if (!song) {
+    P(h('h2', { text: 'Chanson introuvable' }), B('Retour à la grille', A.board, 'primary big'));
+  } else if (G.phase === 'ready') {
+    P(h('div', { class: 'songcard' }, h('span', { class: 'rsong-pts', text: String(song.points) }),
+        h('span', { class: 'rsong-txt' }, h('b', { text: song.title || 'Sans titre' }), song.artist ? h('small', { text: song.artist }) : null)),
+      songWarnings(song, local), answerCard(song),
+      B('Lancer la musique', A.play, 'primary big'),
+      B('Changer de chanson', A.board));
+  } else if (eff === 'playing') {
+    rl.bar = h('i');
+    rl.time = h('small', { text: '' });
+    const paused = G.audio.mode === 'pause';
+    P(h('h2', { text: paused ? 'Extrait en pause' : 'Extrait en cours' }),
+      h('div', { class: 'rprog' }, h('div', { class: 'bar' }, rl.bar), rl.time),
+      songWarnings(song, local, true),
+      h('div', { class: 'row2' }, paused ? B('Reprendre', A.resume, 'primary') : B('Pause', A.pause), B('Couper maintenant', A.cut)),
+      B('Reprendre au début', A.play),
+      answerCard(song),
+      h('p', { class: 'sub-k', text: 'Après la coupure' }),
+      verdicts(song));
+  } else if (eff === 'cut') {
+    P(h('h2', { text: 'Musique coupée : ' + team.name + ' chante la suite' }),
+      songWarnings(song, local, true), answerCard(song),
+      B(G.hint ? 'Initiales affichées (points divisés par deux)' : 'Indice : afficher les initiales', A.hint, '', { disabled: G.hint }),
+      verdicts(song),
+      B('Réécouter l’extrait', A.play));
+  } else if (G.phase === 'judged') {
+    const ok = G.verdict === 'ok', outro = G.audio.mode === 'outro';
+    P(h('h2', { text: ok ? 'Bonne réponse : +' + G.gained + ' pour ' + team.name : 'Mauvaise réponse pour ' + team.name }),
+      answerCard(song),
+      outro ? B('Arrêter la musique', A.stopOutro) : B('Écouter la suite de la chanson', A.outro),
+      B('Chanson suivante', A.next, 'primary big'),
+      B('Annuler le verdict', A.undo, 'sm'));
+  }
+  const settings = h('details', { class: 'settings', ontoggle: (e) => { settingsOpen = e.target.open; } },
+    h('summary', { text: 'Réglages de la partie' }),
+    h('div', { class: 'settings-body' },
+      [0, 1].map((i) => h('div', { class: 'field' },
+        h('label', { for: (local ? 'l' : 'r') + '-team-' + i, text: 'Nom de l’équipe ' + (i + 1) }),
+        h('input', { type: 'text', id: (local ? 'l' : 'r') + '-team-' + i, maxlength: '24', value: G.teams[i].name, onchange: (e) => A.name(i, e.target.value) }))),
+      G.phase !== 'lobby' ? B('Afficher l’accueil sur l’écran', A.lobby) : null,
+      confirmBtn('Nouvelle partie (scores à zéro)', 'Appuyez encore pour tout remettre à zéro', A.reset)));
+  if (settingsOpen) settings.open = true;
+  root.replaceChildren(scores, panel, settings);
+  updateRemoteLive();
+}
+function updateRemoteLive() {
+  if (!rl.bar) return;
+  const song = getSong(G.songId);
+  if (!song) return;
+  let t = null;
+  if (rl.local) t = tv.t;
+  else { const p = tvPeer(); if (p && typeof p.presence.t === 'number' && p.presence.seq === G.audio.seq) t = p.presence.t; }
+  if (t == null) { rl.time.textContent = 'Position de la musique inconnue (écran télé non relié)'; return; }
+  const end = stopOf(song);
+  if (isFinite(end)) {
+    rl.bar.style.width = clamp((t - song.start) / (end - song.start), 0, 1) * 100 + '%';
+    rl.time.textContent = 'Coupure dans ' + Math.max(0, Math.ceil(end - t)) + ' s';
+  } else rl.time.textContent = 'Pas de coupure réglée : coupez à la main';
+}
+function renderStatus() {
+  const el = $('#r-status');
+  if (!el || view !== 'remote') return;
+  let cls = 'wait', text;
+  const p = tvPeer();
+  if (!net.resolved) text = 'Connexion…';
+  else if (!caps.db && !caps.room) { cls = ''; text = 'Cet appareil n’est relié à aucun autre : la télécommande ne pilote que cette page. Ouvrez l’artefact connecté à votre compte sur les deux appareils.'; }
+  else if (net.writeErr === 'invalid_argument') { cls = ''; text = 'Cet appareil est en lecture seule : il ne peut pas piloter la partie.'; }
+  else if (p) {
+    cls = 'on';
+    text = 'Écran télé relié';
+    if (p.presence.snd === 'blocked') { cls = 'wait'; text += ' · son bloqué : cliquez une fois sur l’écran du PC'; }
+  } else if (caps.room) text = 'Écran télé introuvable. Sur le PC, ouvrez « Écran télé » et activez-le.';
+  else { cls = 'on'; text = 'Relié par la base partagée (réaction plus lente, état de l’écran inconnu).'; }
+  el.replaceChildren(h('span', { class: 'dot ' + cls }), h('span', { text }));
+}
+
+/* ================= mes chansons ================= */
+const ed = { id: null, builtFor: undefined, player: new Audio(), hasAudio: false, excerptEnd: null, sync: null, els: {} };
+ed.player.preload = 'auto';
+function songStatus(s) {
+  return (AudioStore.has(s.id) ? 'audio chargé' : 'audio absent ici') + ' · ' + (isReady(s) ? 'prête' : 'à compléter');
+}
+const edMsg = (t) => { const el = $('#ed-msg'); if (el) el.textContent = t; };
+async function addFiles(files) {
+  const list = [...files], lyr = new Map(), used = new Set(), orphans = [];
+  for (const f of list) if (isLyricFile(f)) lyr.set(stemOf(f.name), f);
+  const audios = list.filter((f) => !isLyricFile(f) && isAudioFile(f));
+  let first = null, i = 0, added = 0, found = 0, online = 0, toCheck = 0, missing = 0, netDown = false;
+  for (const f of audios) {
+    const id = newId(), tags = await readTags(f);
+    const base = f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ').replace(/^\d{1,2}[\s.\-]+/, '').trim();
+    const parts = base.split(/\s+-\s+/);
+    const s = normSong(id, {
+      title: tags.title || (parts.length > 1 ? parts.slice(1).join(' - ') : base),
+      artist: tags.artist || (parts.length > 1 ? parts[0] : ''),
+      points: 10, file: f.name, order: Date.now() + i++,
+    });
+    let text = tags.lyrics || '';
+    const side = lyr.get(stemOf(f.name));
+    if (side) {
+      used.add(stemOf(f.name));
+      const t = await readLyricFile(side);
+      if (parseFull(t).length) text = t;
+    }
+    if (!parseFull(text).length && onlineAllowed() && !netDown) {
+      edMsg('Recherche des paroles en ligne (' + (added + 1) + '/' + audios.length + ') : ' + (s.title || f.name) + '…');
+      try {
+        const hit = await findLyricsOnline(s.title, s.artist, await audioDuration(f));
+        if (hit) {
+          text = hit.text;
+          online++;
+          if (!hit.timed || hit.tier < 3) toCheck++;
+          if (!s.artist && hit.c.artistName) {
+            s.artist = String(hit.c.artistName).slice(0, 120);
+            if (hit.c.trackName) s.title = String(hit.c.trackName).slice(0, 120);
+          }
+        }
+      } catch (e) { netDown = true; }
+    }
+    if (text && setFull(s, text)) found++; else missing++;
+    songs.set(id, s);
+    await AudioStore.put(id, f);
+    if (tv.loaded === id) tv.loaded = null;
+    scheduleSave(id);
+    added++;
+    first = first || id;
+  }
+  for (const [stem, f] of lyr) {
+    if (used.has(stem)) continue;
+    const target = [...songs.values()].find((s) => stemOf(s.file) === stem);
+    if (!target) { orphans.push(f.name); continue; }
+    if (setFull(target, await readLyricFile(f))) {
+      found++;
+      scheduleSave(target.id);
+      first = first || target.id;
+      if (ed.id === target.id) ed.builtFor = undefined;
+    }
+  }
+  const bits = [];
+  if (added) bits.push(plural(added, 'chanson ajoutée', 'chansons ajoutées'));
+  if (found) bits.push('paroles trouvées pour ' + plural(found, 'chanson', 'chansons') + (online ? ' (dont ' + online + ' en ligne)' : '') + ' : coupure et mots à trouver préparés');
+  if (toCheck) bits.push(plural(toCheck, 'synchronisation', 'synchronisations') + ' à vérifier à l’oreille');
+  if (missing) {
+    const n = plural(missing, 'chanson', 'chansons');
+    bits.push(netDown ? 'recherche en ligne injoignable pour ' + n + ' : vérifiez la connexion, puis « Chercher les paroles en ligne » dans la chanson'
+      : onlineAllowed() ? 'rien trouvé en ligne pour ' + n + ' : corrigez le titre et l’interprète puis relancez la recherche, ou collez les paroles'
+        : n + ' sans paroles : dans Claude, collez-les ou ajoutez un fichier .lrc du même nom (la copie GitHub du jeu les cherche toute seule)');
+  }
+  if (orphans.length) bits.push('paroles sans chanson du même nom : ' + orphans.join(', '));
+  edMsg(bits.join(' · '));
+  if (first) ed.id = first;
+  songsChanged();
+}
+async function loadEdAudio(s) {
+  const url = await AudioStore.url(s.id);
+  if (ed.id !== s.id) return;
+  ed.hasAudio = !!url;
+  if (url) ed.player.src = url;
+  refreshEditorMeta();
+}
+function refreshEditorMeta() {
+  const s = songs.get(ed.id), E = ed.els;
+  if (!s || !E.chips) return;
+  const lines = parseLyrics(s.lyrics), n = wordsOf(s.answer).length, timed = lines.filter((l) => l.t != null).length;
+  const chip = (ok, yes, no) => h('span', { class: 'chip ' + (ok ? 'ok' : 'no'), text: ok ? yes : no });
+  E.chips.replaceChildren(
+    chip(ed.hasAudio, 'Audio chargé sur cet appareil', 'Audio absent sur cet appareil'),
+    chip(n > 0, plural(n, 'mot à trouver', 'mots à trouver'), 'Paroles à trouver manquantes'),
+    chip(s.stop > s.start, 'Coupure à ' + fmt(s.stop), 'Coupure à placer'),
+    h('span', { class: 'chip', text: !lines.length ? 'Aucune ligne affichée' : timed ? plural(timed, 'ligne synchronisée', 'lignes synchronisées') + ' sur ' + lines.length : plural(lines.length, 'ligne affichée d’un bloc', 'lignes affichées d’un bloc') }));
+  E.audioState.textContent = ed.hasAudio ? 'Fichier : ' + (s.file || 'audio chargé') : 'Aucun fichier audio sur cet appareil pour cette chanson' + (s.file ? ' (attendu : ' + s.file + ')' : '') + '.';
+  E.transport.hidden = !ed.hasAudio;
+  const item = $('#ed-list .ed-item.on');
+  if (item) { $('b', item).textContent = s.title || 'Sans titre'; $('small', item).textContent = songStatus(s); $('.ed-pts', item).textContent = String(s.points); }
+}
+function buildEditor() {
+  ed.builtFor = ed.id;
+  try { ed.player.pause(); } catch (e) { /* rien */ }
+  ed.sync = null; ed.excerptEnd = null; ed.hasAudio = false; ed.els = {};
+  const host = $('#ed-form'), s = songs.get(ed.id);
+  if (!s) {
+    host.replaceChildren(h('div', { class: 'ed-blank' },
+      h('h2', { text: 'Préparez vos chansons' }),
+      h('p', { text: 'Ajoutez vos fichiers audio. Quand un fichier contient ses paroles, ou qu’un fichier .lrc du même nom l’accompagne, le jeu choisit la coupure et les mots à trouver selon les points. Sinon, collez les paroles dans la chanson : le reste suit.' }),
+      h('p', { class: 'hint', text: 'Tant que la liste est vide, le jeu propose une chanson de démonstration pour tester le son sur la télé.' })));
+    return;
+  }
+  const E = ed.els;
+  const set = (k, v) => { s[k] = v; scheduleSave(s.id); refreshEditorMeta(); };
+  E.chips = h('div', { class: 'chips' });
+  E.audioState = h('small');
+  const fileInput = h('input', { class: 'vh', type: 'file', id: 'f-file', accept: 'audio/*,.mp3,.m4a,.wav,.ogg,.flac', onchange: async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    await AudioStore.put(s.id, f);
+    if (tv.loaded === s.id) tv.loaded = null;
+    s.file = f.name; scheduleSave(s.id);
+    await loadEdAudio(s);
+    if (!s.full.trim()) { const tags = await readTags(f); if (tags.lyrics && ed.id === s.id) importFull(tags.lyrics); }
+  } });
+  E.play = B('Lecture', () => { ed.excerptEnd = null; if (ed.player.paused) ed.player.play().catch(() => {}); else ed.player.pause(); });
+  E.seek = h('input', { type: 'range', id: 'f-seek', min: '0', max: '100', step: '0.1', value: '0', 'aria-label': 'Position dans le morceau', oninput: (e) => { try { ed.player.currentTime = +e.target.value; } catch (err) { /* rien */ } } });
+  E.time = h('span', { class: 'ed-time', text: '0:00.0' });
+  const playRange = (from, to) => { if (!ed.hasAudio) return; ed.excerptEnd = to; try { ed.player.currentTime = Math.max(0, from); } catch (e) { /* rien */ } ed.player.play().catch(() => {}); };
+  E.transport = h('div', { class: 'ed-row', hidden: true },
+    h('div', { class: 'transport' }, E.play, E.seek, E.time),
+    h('div', { class: 'btnrow' },
+      B('Écouter l’extrait', () => playRange(s.start, stopOf(s)), 'sm'),
+      B('Écouter les 4 s avant la coupure', () => playRange(Math.max(s.start, s.stop - 4), stopOf(s)), 'sm')));
+  const timeRow = (key, label, help) => {
+    const inp = h('input', { type: 'text', id: 'f-' + key, inputmode: 'decimal', value: fmt(s[key]), onchange: (e) => { set(key, parseTime(e.target.value)); e.target.value = fmt(s[key]); } });
+    E[key] = inp;
+    const nudge = (d) => () => { set(key, Math.max(0, Math.round((s[key] + d) * 10) / 10)); inp.value = fmt(s[key]); };
+    return h('div', { class: 'ed-row' },
+      h('label', { for: 'f-' + key, text: label }),
+      h('div', { class: 'ed-timeset' },
+        B('−0,1 s', nudge(-0.1), 'sm'), inp, B('+0,1 s', nudge(0.1), 'sm'),
+        B('Prendre la position de lecture', () => { set(key, Math.round((ed.player.currentTime || 0) * 10) / 10); inp.value = fmt(s[key]); }, 'sm brass')),
+      h('small', { text: help }));
+  };
+  E.lyrics = h('textarea', { id: 'f-lyrics', rows: '7', spellcheck: 'false', placeholder: 'Une ligne par phrase affichée avant la coupure', oninput: (e) => set('lyrics', e.target.value) });
+  E.lyrics.value = s.lyrics;
+  E.syncPanel = h('div', { class: 'sync', hidden: true });
+  const drawSync = () => {
+    const sy = ed.sync;
+    E.syncPanel.hidden = !sy;
+    if (!sy) { E.syncPanel.replaceChildren(); return; }
+    const last = sy.i >= sy.lines.length;
+    const mark = B(last ? 'Couper la musique ici' : 'Cette ligne commence maintenant', () => {
+      const t = ed.player.currentTime || 0;
+      if (!last) { sy.lines[sy.i].t = Math.max(0, Math.round((t - 0.15) * 10) / 10); sy.i++; drawSync(); return; }
+      ed.player.pause();
+      s.stop = Math.max(0, Math.round((t - 0.2) * 10) / 10);
+      s.lyrics = sy.lines.map((l) => '[' + fmt(l.t) + '] ' + l.text).join('\n');
+      E.lyrics.value = s.lyrics; E.stop.value = fmt(s.stop);
+      ed.sync = null; scheduleSave(s.id); refreshEditorMeta(); drawSync();
+    }, 'primary big');
+    E.syncPanel.replaceChildren(
+      h('p', { class: 'sync-k', text: last ? 'Dernière étape' : 'Ligne ' + (sy.i + 1) + ' sur ' + sy.lines.length }),
+      h('p', { class: 'sync-line', text: last ? 'Appuyez à l’instant où les mots à trouver commencent.' : sy.lines[sy.i].text }),
+      mark,
+      B('Annuler la synchronisation', () => { ed.sync = null; ed.player.pause(); drawSync(); }, 'sm'));
+    mark.focus();
+  };
+  const startSync = () => {
+    const lines = parseLyrics(s.lyrics);
+    if (!ed.hasAudio || !lines.length) { E.syncMsg.textContent = 'Il faut un fichier audio chargé et au moins une ligne de paroles.'; return; }
+    E.syncMsg.textContent = '';
+    ed.sync = { i: 0, lines: lines.map((l) => ({ t: null, text: l.text })) };
+    ed.excerptEnd = null;
+    try { ed.player.currentTime = s.start; } catch (e) { /* rien */ }
+    ed.player.play().catch(() => {});
+    drawSync();
+  };
+  let fullTimer = null;
+  E.full = h('textarea', { id: 'f-full', rows: '6', spellcheck: 'false', placeholder: 'Toutes les paroles de la chanson, avec ou sans horodatage [mm:ss.xx]',
+    oninput: (e) => { const v = e.target.value; clearTimeout(fullTimer); fullTimer = setTimeout(() => fullEdited(v), 600); },
+    onchange: (e) => { clearTimeout(fullTimer); fullEdited(e.target.value); } });
+  E.full.value = s.full;
+  E.auto = h('div', { class: 'ed-row' });
+  E.autoMsg = h('small', { class: 'warn', role: 'status' });
+  const afterAuto = () => {
+    if (ed.sync) { ed.sync = null; try { ed.player.pause(); } catch (e) { /* rien */ } drawSync(); }
+    E.lyrics.value = s.lyrics; E.answer.value = s.answer; E.start.value = fmt(s.start); E.stop.value = fmt(s.stop);
+    scheduleSave(s.id); refreshEditorMeta(); drawAuto();
+  };
+  const fullEdited = (v) => {
+    if (!songs.has(s.id)) return;
+    const nv = String(v).replace(/\r\n?/g, '\n').slice(0, 20000);
+    if (nv === s.full) return;
+    const had = s.cut >= 0;
+    s.full = nv;
+    const L = parseFull(nv);
+    if (!L.length) s.cut = -1;
+    else if (had) applyAuto(s, 'all');
+    else if (!s.answer.trim() && !s.lyrics.trim()) { s.cut = pickCut(s, L, -1); applyAuto(s, 'cut'); }
+    afterAuto();
+  };
+  const importFull = (text) => {
+    const nv = String(text || '').replace(/\r\n?/g, '\n').trim().slice(0, 20000), L = parseFull(nv);
+    if (!L.length) { E.autoMsg.textContent = 'Aucune parole lisible dans ce fichier.'; return; }
+    E.autoMsg.textContent = '';
+    const auto = s.cut >= 0 || (!s.answer.trim() && !s.lyrics.trim());
+    s.full = nv; E.full.value = nv;
+    if (auto) { s.cut = pickCut(s, L, -1); applyAuto(s, 'cut'); } else s.cut = -1;
+    afterAuto();
+  };
+  const lrcInput = h('input', { class: 'vh', type: 'file', id: 'f-lrc', accept: '.lrc,.txt,text/plain', onchange: async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const t = await readLyricFile(f);
+    e.target.value = '';
+    importFull(t);
+  } });
+  const searchOnline = async () => {
+    E.autoMsg.textContent = 'Recherche des paroles en ligne…';
+    try {
+      const hit = await findLyricsOnline(s.title, s.artist, isFinite(ed.player.duration) ? ed.player.duration : 0);
+      if (ed.id !== s.id || !songs.has(s.id)) return;
+      if (!hit) { E.autoMsg.textContent = 'Aucune parole trouvée en ligne pour « ' + (s.title || 'ce titre') + ' ». Corrigez le titre et l’interprète, puis relancez.'; return; }
+      importFull(hit.text);
+      E.autoMsg.textContent = !hit.timed ? 'Paroles trouvées en ligne, mais pour une autre version du morceau : placez le début et la coupure à l’oreille.'
+        : hit.tier < 3 ? 'Paroles synchronisées trouvées en ligne. La durée ne correspond pas exactement' + (hit.dd != null ? ' (écart de ' + Math.round(hit.dd) + ' s)' : '') + ' : vérifiez la coupure à l’oreille.'
+          : 'Paroles synchronisées trouvées en ligne pour cette version du morceau.';
+    } catch (e) {
+      E.autoMsg.textContent = 'Recherche en ligne injoignable. Vérifiez la connexion Internet, puis réessayez.';
+    }
+  };
+  const exportLrc = () => {
+    if (!parseFull(s.full).length) { E.autoMsg.textContent = 'Aucune parole à télécharger pour cette chanson.'; return; }
+    downloadText((s.file ? s.file.replace(/\.[^.]+$/, '') : [s.artist, s.title].filter(Boolean).join(' - ') || 'paroles') + '.lrc', s.full);
+  };
+  const drawAuto = () => {
+    const L = parseFull(s.full), kids = [];
+    const timed = L.length > 0 && L.every((l) => l.t != null);
+    if (!L.length) {
+      kids.push(h('p', { class: 'hint', text: 'Aucune parole complète pour cette chanson. Dès qu’elles sont là, le jeu choisit la coupure et les mots à trouver.' }));
+    } else if (s.cut < 0) {
+      kids.push(
+        h('p', { class: 'auto-status', text: plural(L.length, 'ligne de paroles détectée', 'lignes de paroles détectées') + (timed ? ', synchronisées avec la musique.' : ', sans horodatage.') }),
+        h('div', { class: 'btnrow' }, B('Préparer automatiquement cette chanson', () => { s.cut = pickCut(s, L, -1); applyAuto(s, 'cut'); afterAuto(); }, 'primary', { 'data-k': 'prep' })),
+        s.answer.trim() || s.lyrics.trim() ? h('small', { text: 'Cela remplace les paroles affichées et les mots à trouver saisis à la main.' }) : null);
+    } else {
+      const cut = clamp(s.cut, 0, L.length - 1), n = autoCount(s, L, cut), opts = WORD_OPTS[s.points] || [2];
+      const first = Math.max(0, cut - s.lead);
+      const stepper = (label, k, value, onDec, onInc, note) => h('div', { class: 'field' },
+        h('span', { class: 'sub-k', text: label }),
+        h('div', { class: 'stepper' },
+          B('−', onDec, 'sm', { 'aria-label': label + ' : un de moins', 'data-k': k + '-' }),
+          h('output', { text: String(value) }),
+          B('+', onInc, 'sm', { 'aria-label': label + ' : un de plus', 'data-k': k + '+' }), note));
+      const setN = (v) => { s.nw = clamp(v, 1, 30); applyAuto(s, 'answer'); afterAuto(); };
+      const setLead = (v) => { s.lead = clamp(v, 1, 40); applyAuto(s, 'lead'); afterAuto(); };
+      let left = n;
+      const rows = L.map((l, i) => {
+        const x = h('span');
+        if (i >= cut && left > 0) {
+          for (const tok of l.text.split(/(\s+)/)) {
+            if (!tok) continue;
+            if (left > 0 && cleanWords(tok).length) { x.append(h('mark', { text: tok })); left--; } else x.append(tok);
+          }
+        } else x.textContent = l.text;
+        return h('button', { class: 'al' + (i === cut ? ' cut' : i >= first && i < cut ? ' lead' : ''), type: 'button', 'aria-pressed': String(i === cut), 'data-k': 'line' + i,
+          title: 'Couper la musique juste avant cette ligne', onclick: () => { s.cut = i; applyAuto(s, 'cut'); afterAuto(); } },
+          h('span', { class: 'al-t', text: l.t != null ? fmt(l.t) : String(i + 1) }), x);
+      });
+      const box = h('div', { class: 'auto-lines', role: 'group', 'aria-label': 'Paroles de la chanson : choisir la ligne où la musique se coupe' }, rows);
+      kids.push(
+        h('p', { class: 'auto-status', text: L[cut].t != null
+          ? 'Paroles synchronisées : extrait calé de ' + fmt(s.start) + ' à ' + fmt(s.stop) + '. Vérifiez à l’oreille avec « Écouter les 4 s avant la coupure ».'
+          : 'Paroles sans horodatage : les mots à trouver sont choisis, mais placez le début et la coupure en écoutant, dans « Musique et coupure ».' }),
+        h('div', { class: 'ed-grid' },
+          stepper('Mots à trouver', 'n', n, () => setN(n - 1), () => setN(n + 1),
+            s.nw > 0 ? B('Revenir au nombre automatique', () => { s.nw = 0; applyAuto(s, 'answer'); afterAuto(); }, 'sm', { 'data-k': 'n0' })
+              : h('small', { text: opts.join(' ou ') + ' pour ' + s.points + ' points' })),
+          stepper('Lignes affichées avant la coupure', 'l', s.lead, () => setLead(s.lead - 1), () => setLead(s.lead + 1), null)),
+        h('small', { text: 'Touchez une ligne pour couper la musique juste avant. Les mots surlignés sont ceux à trouver.' }),
+        box,
+        h('div', { class: 'btnrow' },
+          B('Proposer une autre coupure', () => { s.cut = pickCut(s, L, s.cut); applyAuto(s, 'cut'); afterAuto(); }, '', { 'data-k': 'repick' }),
+          B('Passer en réglage manuel', () => { s.cut = -1; afterAuto(); }, 'sm', { 'data-k': 'prep' })));
+      requestAnimationFrame(() => { const el = rows[cut]; if (el) box.scrollTop = Math.max(0, el.offsetTop - 96); });
+    }
+    const ae = document.activeElement, fk = ae && E.auto.contains(ae) ? ae.getAttribute('data-k') : null;
+    E.auto.replaceChildren(...kids.filter(Boolean));
+    if (fk) { const el = E.auto.querySelector('[data-k="' + fk + '"]'); if (el) el.focus({ preventScroll: true }); }
+  };
+  E.syncMsg = h('small', { class: 'warn', role: 'status' });
+  host.replaceChildren(
+    h('div', { class: 'ed-card' }, E.chips,
+      h('div', { class: 'ed-grid' },
+        h('div', { class: 'field' }, h('label', { for: 'f-title', text: 'Titre' }), h('input', { type: 'text', id: 'f-title', maxlength: '120', value: s.title, oninput: (e) => set('title', e.target.value) })),
+        h('div', { class: 'field' }, h('label', { for: 'f-artist', text: 'Interprète' }), h('input', { type: 'text', id: 'f-artist', maxlength: '120', value: s.artist, oninput: (e) => set('artist', e.target.value) }))),
+      h('div', { class: 'field' }, h('span', { class: 'sub-k', text: 'Points en jeu' }),
+        h('div', { class: 'seg', role: 'group', 'aria-label': 'Points en jeu' }, [10, 20, 30, 40, 50].map((p) => {
+          const b = B(String(p), () => {
+            set('points', p);
+            b.parentNode.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+            if (s.cut >= 0 && s.full) { applyAuto(s, 'answer'); afterAuto(); }
+          }, 'sm', { 'aria-pressed': String(s.points === p) });
+          return b;
+        })),
+        h('small', { text: 'En préparation automatique, les mots à trouver suivent les points : 2 mots pour 10, 3 pour 20, 4 ou 5 pour 30, 6 ou 7 pour 40, 8 ou 9 pour 50.' }))),
+    h('div', { class: 'ed-card' }, h('h3', { text: 'Préparation automatique' }),
+      h('div', { class: 'field' }, h('label', { for: 'f-full', text: 'Paroles complètes de la chanson' }), E.full,
+        h('small', { text: 'Elles se remplissent toutes seules à l’ajout du fichier quand elles sont trouvées. Vous pouvez aussi les coller ici, avec ou sans horodatage [mm:ss.xx].' })),
+      h('div', { class: 'btnrow' },
+        onlineAllowed() ? B('Chercher les paroles en ligne', searchOnline, 'sm brass', { id: 'f-online' }) : null,
+        lrcInput, h('label', { class: 'btn sm', for: 'f-lrc', text: 'Importer un fichier de paroles (.lrc, .txt)' }),
+        onlineAllowed() ? B('Télécharger les paroles (.lrc)', exportLrc, 'sm', { id: 'f-export' }) : null),
+      h('small', { text: onlineAllowed()
+        ? 'La recherche en ligne interroge LRCLIB, une base de paroles communautaire, avec le titre, l’interprète et la durée du morceau. Elle se lance toute seule à l’ajout d’un fichier.'
+        : 'Dans Claude, le jeu ne peut pas aller chercher les paroles sur Internet. La copie du jeu hébergée sur votre GitHub le fait dès l’ajout du fichier.' }),
+      E.autoMsg, E.auto),
+    h('div', { class: 'ed-card' }, h('h3', { text: 'Musique et coupure' }),
+      h('div', { class: 'ed-row' }, E.audioState, h('div', { class: 'btnrow' }, fileInput, h('label', { class: 'btn sm', for: 'f-file', text: 'Choisir le fichier audio de cette chanson' }))),
+      E.transport,
+      timeRow('start', 'Début de l’extrait', 'La musique démarre ici quand vous lancez la chanson.'),
+      timeRow('stop', 'Coupure', 'La musique s’arrête ici, juste avant les mots à trouver.')),
+    h('div', { class: 'ed-card' }, h('h3', { text: 'Paroles' }),
+      h('div', { class: 'field' }, h('label', { for: 'f-lyrics', text: 'Paroles affichées avant la coupure' }), E.lyrics,
+        h('small', { text: 'Une ligne par phrase. Sans synchronisation, toutes les lignes s’affichent dès le début. Vous pouvez aussi coller des lignes horodatées du type [0:12.5].' })),
+      h('div', { class: 'btnrow' }, B('Synchroniser les lignes en écoutant', startSync)), E.syncMsg, E.syncPanel,
+      h('div', { class: 'field' }, h('label', { for: 'f-answer', text: 'Paroles à trouver (masquées à l’écran)' }),
+        (E.answer = h('input', { type: 'text', id: 'f-answer', maxlength: '300', value: s.answer, oninput: (e) => set('answer', e.target.value) })),
+        h('small', { text: 'Chaque mot devient une tuile. Seule la télécommande montre la réponse.' }))),
+    h('div', { class: 'btnrow' }, confirmBtn('Supprimer cette chanson', 'Appuyez encore pour supprimer', () => deleteSong(s.id), 'sm')));
+  refreshEditorMeta();
+  drawAuto();
+  loadEdAudio(s);
+}
+function renderSongs() {
+  if (onlineAllowed()) $('#ed-how').textContent = 'Ajoutez simplement vos mp3 : le jeu cherche leurs paroles (dans le fichier, puis en ligne), choisit la coupure et masque les mots à trouver selon les points.';
+  const arr = [...songs.values()].sort((a, b) => a.order - b.order);
+  if (ed.id && !songs.has(ed.id)) ed.id = null;
+  $('#ed-list').replaceChildren(...(arr.length ? arr.map((s) => h('button', { class: 'ed-item' + (s.id === ed.id ? ' on' : ''), type: 'button', onclick: () => { ed.id = s.id; renderSongs(); } },
+    h('span', { class: 'ed-pts', text: String(s.points) }),
+    h('span', { class: 'ed-item-txt' }, h('b', { text: s.title || 'Sans titre' }), h('small', { text: songStatus(s) })))) : [h('p', { class: 'hint', text: 'Aucune chanson pour l’instant.' })]));
+  if (ed.builtFor !== ed.id) buildEditor();
+  else refreshEditorMeta();
+}
+function edTick() {
+  const E = ed.els;
+  if (view !== 'songs' || !E.seek || !ed.hasAudio) return;
+  const p = ed.player, t = p.currentTime || 0;
+  if (isFinite(p.duration) && p.duration > 0) { const mx = String(Math.round(p.duration * 10) / 10); if (E.seek.max !== mx) E.seek.max = mx; }
+  if (document.activeElement !== E.seek) E.seek.value = String(t);
+  E.time.textContent = fmt(t) + (isFinite(p.duration) ? ' / ' + fmt(p.duration) : '');
+  const label = p.paused ? 'Lecture' : 'Pause';
+  if (E.play.textContent !== label) E.play.textContent = label;
+  if (ed.excerptEnd != null && !p.paused && t >= ed.excerptEnd - 0.03) { p.pause(); ed.excerptEnd = null; }
+}
+
+/* ================= accueil et navigation ================= */
+function renderHome() {
+  const all = [...songs.values()], ready = all.filter(isReady).length;
+  let s = all.length ? plural(ready, 'chanson prête', 'chansons prêtes') + ' sur ' + all.length : 'Aucune chanson ajoutée : le jeu propose une chanson de démonstration pour tester le son';
+  s += ' · ';
+  if (!net.resolved) s += 'connexion en cours…';
+  else if (net.local) s += tvPeer() ? 'un écran télé est ouvert dans ce navigateur' : 'version autonome : ouvrez « Écran télé » dans l’onglet à caster et « Télécommande » dans une autre fenêtre de ce navigateur';
+  else if (caps.db || caps.room) s += tvPeer() ? 'un écran télé est ouvert et relié' : 'vos appareils se relient dès qu’ils ouvrent cette page';
+  else s += 'mode local : cet appareil joue seul, avec le pilotage intégré à l’écran télé';
+  $('#home-status').textContent = s;
+  if (net.local) {
+    $('#role-remote-k').textContent = 'Dans une autre fenêtre de ce PC';
+    $('#how-remote').textContent = 'Toujours sur le PC, ouvrez cette page dans une deuxième fenêtre et choisissez « Télécommande » : elle reste sur l’écran du PC, la télé ne montre que l’onglet casté.';
+  }
+}
+const HASH = { tv: 'ecran', remote: 'telecommande', songs: 'chansons', home: '' };
+function setView(v) {
+  if (v === view) return;
+  if (view === 'tv') tvLeave();
+  if (view === 'songs') { try { ed.player.pause(); } catch (e) { /* rien */ } }
+  view = v;
+  tv.sceneKey = null; tv.gateMode = null;
+  if (v === 'songs') AudioStore.refresh().then(() => { if (view === 'songs') renderSongs(); });
+  publishRole();
+  render();
+  try { window.scrollTo(0, 0); } catch (e) { /* rien */ }
+}
+function go(v) {
+  try { location.hash = HASH[v]; } catch (e) { /* rien */ }
+  setView(v);
+}
+function route() {
+  const name = (location.hash || '').replace(/^#/, '');
+  const v = Object.keys(HASH).find((k) => HASH[k] && HASH[k] === name) || 'home';
+  setView(v);
+}
+function render() {
+  document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + view));
+  if (view === 'home') renderHome();
+  else if (view === 'tv') renderTV();
+  else if (view === 'remote') { renderRemote($('#remote'), false); renderStatus(); }
+  else if (view === 'songs') renderSongs();
+}
+
+/* ================= démarrage ================= */
+function start(data) {
+  if (data && typeof data.ed === 'string' && songs.has(data.ed)) ed.id = data.ed;
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('[data-go]');
+    if (a) { e.preventDefault(); go(a.getAttribute('data-go')); }
+  });
+  window.addEventListener('hashchange', route);
+  window.addEventListener('storage', (e) => { if (net.resolved && !caps.db && e.key === 'mm-songs') reloadSongs(); });
+  document.addEventListener('focusout', () => {
+    setTimeout(() => { if (document.querySelector('.remote[data-stale]')) render(); }, 0);
+  });
+  $('#ed-add').addEventListener('change', (e) => { const f = e.target.files; if (f && f.length) addFiles(f).then(() => { e.target.value = ''; }); });
+  $('#ed-new').addEventListener('click', () => {
+    const id = newId();
+    songs.set(id, normSong(id, { title: 'Nouvelle chanson', points: 10, order: Date.now() }));
+    ed.id = id; scheduleSave(id); songsChanged();
+  });
+  $('#dock-fs').addEventListener('click', () => toggleFullscreen(false));
+  $('#dock-test').addEventListener('click', () => { sfx.init(); sfx.ok(); });
+  const toggleDrawer = (open) => { tv.drawer = open == null ? !tv.drawer : open; render(); };
+  $('#dock-drawer').addEventListener('click', () => toggleDrawer());
+  $('#drawer-close').addEventListener('click', () => toggleDrawer(false));
+  const tvEl = $('#tv');
+  let dockTimer = null;
+  tvEl.addEventListener('pointermove', () => {
+    tvEl.classList.add('show-dock');
+    clearTimeout(dockTimer);
+    dockTimer = setTimeout(() => tvEl.classList.remove('show-dock'), 3000);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (view !== 'tv' || !tv.active || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'p' || e.key === 'P') toggleDrawer();
+    else if (e.key === 'f' || e.key === 'F') toggleFullscreen(false);
+  });
+  ed.player.addEventListener('loadedmetadata', () => { if (view === 'songs') edTick(); });
+  setInterval(tvTick, 50);
+  setInterval(edTick, 80);
+  AudioStore.refresh().then(() => { if (view === 'songs' || view === 'remote') render(); });
+  route();
+  render();
+  initCaps();
+}
+const hot = window.claude && window.claude.hot;
+try { if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ ed: ed.id })); } catch (e) { /* rien */ }
+if (hot && typeof hot.ready === 'function') hot.ready((d) => start(d || {}));
+else start((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
